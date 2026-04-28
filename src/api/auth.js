@@ -1,7 +1,15 @@
 import client from "./client";
 
 export const login = async (correo, contrasena) => {
-  const { data } = await client.post("/auth/login", { correo, contrasena });
+  const body = new URLSearchParams();
+  body.append("username", correo);
+  body.append("password", contrasena);
+
+  const { data } = await client.post("/auth/login", body, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+  });
   localStorage.setItem("token", data.access_token);
   client.defaults.headers.common["Authorization"] = `Bearer ${data.access_token}`;
   return data;
