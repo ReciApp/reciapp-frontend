@@ -6,6 +6,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import CitizenHome from "./pages/CitizenHome";
+import MisSolicitudes from "./pages/MisSolicitudes";
 import RecyclerHome from "./pages/RecyclerHome";
 import AdminHome from "./pages/AdminHome";
 import NotFound from "./pages/NotFound";
@@ -31,6 +32,14 @@ export default function App() {
         element={
           <ProtectedRoute roles={["ciudadano"]}>
             <CitizenHome />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ciudadano/solicitudes"
+        element={
+          <ProtectedRoute roles={["ciudadano"]}>
+            <MisSolicitudes />
           </ProtectedRoute>
         }
       />

@@ -5,6 +5,11 @@ export const getMe = async () => {
   return data;
 };
 
+export const getUsuario = async (id) => {
+  const { data } = await client.get(`/api/usuarios/${id}`);
+  return data;
+};
+
 export const updateMe = async (payload) => {
   const { data } = await client.put("/api/usuarios/me", payload);
   return data;
