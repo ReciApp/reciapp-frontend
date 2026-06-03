@@ -1,49 +1,184 @@
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { useAuth } from "../context/AuthContext";
+import { useWebSocket } from "../hooks/useWebSocket";
+import { listarSolicitudes, obtenerSolicitud } from "../api/solicitudes";
+import TarjetaSolicitudEntrante from "../components/PanelReciclador/TarjetaSolicitudEntrante";
 
+const TIPO_ICONO = {
+  plastico: "🧴", papel: "📄", vidrio: "🍶",
+  metal: "🔩", organico: "🍃", electronico: "💻",
+};
+const FRANJA_LABEL = { manana: "Mañana 🌅", tarde: "Tarde ☀️", noche: "Noche 🌙" };
+
+// ── Tarjeta "en camino" ────────────────────────────────────────────────────────
+function TarjetaEnCamino({ solicitud }) {
+  return (
+    <div className="bg-white border border-purple-200 rounded-xl px-5 py-4 flex items-center gap-4 shadow-sm">
+      <span className="text-2xl">{TIPO_ICONO[solicitud.tipo_residuo] ?? "♻"}</span>
+      <div className="flex-1 min-w-0">
+        <p className="font-semibold text-gray-800 capitalize">{solicitud.tipo_residuo} · {solicitud.cantidad_kg} kg</p>
+        <p className="text-xs text-gray-500 truncate">{solicitud.direccion}</p>
+        <p className="text-xs text-gray-400">{solicitud.fecha_recoleccion} · {FRANJA_LABEL[solicitud.franja_horaria]}</p>
+      </div>
+      <span className="text-xs bg-purple-100 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-medium shrink-0">
+        🚛 En camino
+      </span>
+    </div>
+  );
+}
+
+// ── Página principal ───────────────────────────────────────────────────────────
 export default function RecyclerHome() {
   const { user } = useAuth();
+  const [solicitudes, setSolicitudes] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Carga inicial
+  useEffect(() => {
+    listarSolicitudes()
+      .then(setSolicitudes)
+      .catch(() => setError("No se pudieron cargar las solicitudes."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  // WS: nueva_solicitud → fetch completo y agregar a la cola
+  const handleWsMessage = useCallback(async (msg) => {
+    if (msg.tipo !== "nueva_solicitud") return;
+    try {
+      const solicitud = await obtenerSolicitud(msg.solicitud_id);
+      setSolicitudes((prev) => {
+        if (prev.some((s) => s.id === solicitud.id)) return prev;
+        return [solicitud, ...prev];
+      });
+    } catch {}
+  }, []);
+
+  useWebSocket(handleWsMessage, !loading);
+
+  // Callbacks de acciones
+  const handleAceptada = (updated) => {
+    setSolicitudes((prev) =>
+      prev.map((s) => (s.id === updated.id ? updated : s))
+    );
+  };
+
+  const handleRechazada = (id) => {
+    setSolicitudes((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  // Clasificación
+  const entrantes  = solicitudes.filter((s) => s.estado === "asignada");
+  const enCamino   = solicitudes.filter((s) => s.estado === "en_camino");
+  const completadas = solicitudes.filter((s) => s.estado === "completada");
 
   return (
     <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <main className="max-w-2xl mx-auto mt-12 px-4 text-center">
-        <span className="text-5xl">🚲</span>
-        <h2 className="text-2xl font-bold text-gray-800 mt-4">
-          Bienvenido, {user?.nombre}
-        </h2>
-        <p className="text-gray-500 mt-2">
-          Desde aquí gestionarás tus solicitudes de recolección.
-          Esta funcionalidad estará disponible en el Entregable 2.
-        </p>
+      <main className="max-w-2xl mx-auto mt-10 px-4 pb-12">
 
+        {/* Encabezado */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">Panel del reciclador</h1>
+            <p className="text-sm text-gray-400 mt-0.5">Bienvenido, {user?.nombre}</p>
+          </div>
+          <Link to="/perfil" className="text-sm text-emerald-600 hover:underline">Mi perfil</Link>
+        </div>
+
+        {/* Alerta validación pendiente */}
         {user?.estado_validacion === "pendiente" && (
-          <div className="mt-6 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-6 py-4 text-sm">
-            Tu cuenta está pendiente de validación por el administrador.
+          <div className="mb-6 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl px-5 py-4 text-sm">
+            ⚠️ Tu cuenta está pendiente de validación. El administrador debe aprobarte antes de recibir solicitudes.
           </div>
         )}
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <span className="text-3xl">📋</span>
-            <h3 className="font-semibold text-gray-700 mt-3">Solicitudes asignadas</h3>
-            <p className="text-xs text-gray-400 mt-1">Próximamente — Entregable 2</p>
+        {loading && (
+          <div className="text-center py-16 text-gray-400">
+            <p className="text-3xl animate-spin inline-block mb-2">⏳</p>
+            <p>Cargando...</p>
           </div>
-          <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-            <span className="text-3xl">📊</span>
-            <h3 className="font-semibold text-gray-700 mt-3">Mi historial</h3>
-            <p className="text-xs text-gray-400 mt-1">Próximamente — Entregable 3</p>
-          </div>
-          <Link
-            to="/perfil"
-            className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 shadow-sm hover:bg-emerald-100 transition"
-          >
-            <span className="text-3xl">👤</span>
-            <h3 className="font-semibold text-emerald-700 mt-3">Mi perfil</h3>
-            <p className="text-xs text-emerald-500 mt-1">Zona de cobertura y disponibilidad</p>
-          </Link>
-        </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600 mb-4">{error}</div>
+        )}
+
+        {!loading && (
+          <>
+            {/* ── Cola de solicitudes entrantes ── */}
+            <section className="mb-8">
+              <div className="flex items-center gap-2 mb-3">
+                <h2 className="text-lg font-bold text-gray-800">Solicitudes entrantes</h2>
+                {entrantes.length > 0 && (
+                  <span className="bg-blue-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                    {entrantes.length}
+                  </span>
+                )}
+              </div>
+
+              {entrantes.length === 0 ? (
+                <div className="bg-white border border-gray-200 rounded-xl px-5 py-8 text-center text-gray-400">
+                  <p className="text-4xl mb-2">📭</p>
+                  <p className="text-sm">Sin solicitudes pendientes.</p>
+                  <p className="text-xs mt-1">Te notificaremos en tiempo real cuando llegue una nueva.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {entrantes.map((s) => (
+                    <TarjetaSolicitudEntrante
+                      key={s.id}
+                      solicitud={s}
+                      onAceptada={handleAceptada}
+                      onRechazada={handleRechazada}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* ── En camino ── */}
+            {enCamino.length > 0 && (
+              <section className="mb-8">
+                <h2 className="text-lg font-bold text-gray-800 mb-3">
+                  En camino
+                  <span className="ml-2 text-sm font-normal text-purple-600">({enCamino.length})</span>
+                </h2>
+                <div className="space-y-3">
+                  {enCamino.map((s) => (
+                    <TarjetaEnCamino key={s.id} solicitud={s} />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ── Completadas ── */}
+            {completadas.length > 0 && (
+              <section>
+                <h2 className="text-lg font-bold text-gray-800 mb-3">
+                  Completadas
+                  <span className="ml-2 text-sm font-normal text-green-600">({completadas.length})</span>
+                </h2>
+                <div className="space-y-3">
+                  {completadas.map((s) => (
+                    <div key={s.id} className="bg-white border border-green-200 rounded-xl px-5 py-4 flex items-center gap-4 shadow-sm opacity-80">
+                      <span className="text-2xl">{TIPO_ICONO[s.tipo_residuo] ?? "♻"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-700 capitalize">{s.tipo_residuo} · {s.cantidad_kg} kg</p>
+                        <p className="text-xs text-gray-400">{s.fecha_recoleccion} · {FRANJA_LABEL[s.franja_horaria]}</p>
+                      </div>
+                      <span className="text-xs bg-green-100 text-green-700 border border-green-200 px-2.5 py-1 rounded-full font-medium shrink-0">
+                        ✅ Completada
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
+          </>
+        )}
       </main>
     </div>
   );
