@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { listarSolicitudes, obtenerSolicitud } from "../api/solicitudes";
 import TarjetaSolicitudEntrante from "../components/PanelReciclador/TarjetaSolicitudEntrante";
+import MapaNavegacion from "../components/MapaNavegacion/MapaNavegacion";
 
 const TIPO_ICONO = {
   plastico: "🧴", papel: "📄", vidrio: "🍶",
@@ -12,19 +13,22 @@ const TIPO_ICONO = {
 };
 const FRANJA_LABEL = { manana: "Mañana 🌅", tarde: "Tarde ☀️", noche: "Noche 🌙" };
 
-// ── Tarjeta "en camino" ────────────────────────────────────────────────────────
-function TarjetaEnCamino({ solicitud }) {
+// ── Tarjeta "en camino" con mapa de navegación ────────────────────────────────
+function TarjetaEnCamino({ solicitud, wsRef, rutaData }) {
   return (
-    <div className="bg-white border border-purple-200 rounded-xl px-5 py-4 flex items-center gap-4 shadow-sm">
-      <span className="text-2xl">{TIPO_ICONO[solicitud.tipo_residuo] ?? "♻"}</span>
-      <div className="flex-1 min-w-0">
-        <p className="font-semibold text-gray-800 capitalize">{solicitud.tipo_residuo} · {solicitud.cantidad_kg} kg</p>
-        <p className="text-xs text-gray-500 truncate">{solicitud.direccion}</p>
-        <p className="text-xs text-gray-400">{solicitud.fecha_recoleccion} · {FRANJA_LABEL[solicitud.franja_horaria]}</p>
+    <div className="bg-white border border-purple-200 rounded-xl px-5 py-4 shadow-sm">
+      <div className="flex items-center gap-4">
+        <span className="text-2xl">{TIPO_ICONO[solicitud.tipo_residuo] ?? "♻"}</span>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-800 capitalize">{solicitud.tipo_residuo} · {solicitud.cantidad_kg} kg</p>
+          <p className="text-xs text-gray-500 truncate">{solicitud.direccion}</p>
+          <p className="text-xs text-gray-400">{solicitud.fecha_recoleccion} · {FRANJA_LABEL[solicitud.franja_horaria]}</p>
+        </div>
+        <span className="text-xs bg-purple-100 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-medium shrink-0">
+          🚛 En camino
+        </span>
       </div>
-      <span className="text-xs bg-purple-100 text-purple-700 border border-purple-200 px-2.5 py-1 rounded-full font-medium shrink-0">
-        🚛 En camino
-      </span>
+      <MapaNavegacion solicitud={solicitud} wsRef={wsRef} rutaData={rutaData} />
     </div>
   );
 }
@@ -35,6 +39,7 @@ export default function RecyclerHome() {
   const [solicitudes, setSolicitudes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [rutasActivas, setRutasActivas] = useState({}); // solicitud_id → {ruta, distanciaKm, etaMin}
 
   // Carga inicial
   useEffect(() => {
@@ -44,19 +49,29 @@ export default function RecyclerHome() {
       .finally(() => setLoading(false));
   }, []);
 
-  // WS: nueva_solicitud → fetch completo y agregar a la cola
+  // WS: nueva_solicitud y ruta_actualizada
   const handleWsMessage = useCallback(async (msg) => {
-    if (msg.tipo !== "nueva_solicitud") return;
-    try {
-      const solicitud = await obtenerSolicitud(msg.solicitud_id);
-      setSolicitudes((prev) => {
-        if (prev.some((s) => s.id === solicitud.id)) return prev;
-        return [solicitud, ...prev];
-      });
-    } catch {}
+    if (msg.tipo === "nueva_solicitud") {
+      try {
+        const solicitud = await obtenerSolicitud(msg.solicitud_id);
+        setSolicitudes((prev) => {
+          if (prev.some((s) => s.id === solicitud.id)) return prev;
+          return [solicitud, ...prev];
+        });
+      } catch {}
+    } else if (msg.tipo === "ruta_actualizada") {
+      setRutasActivas((prev) => ({
+        ...prev,
+        [msg.solicitud_id]: {
+          ruta:        msg.ruta,
+          distanciaKm: msg.distancia_km,
+          etaMin:      msg.eta_min,
+        },
+      }));
+    }
   }, []);
 
-  useWebSocket(handleWsMessage, !loading);
+  const wsRef = useWebSocket(handleWsMessage, !loading);
 
   // Callbacks de acciones
   const handleAceptada = (updated) => {
@@ -148,7 +163,12 @@ export default function RecyclerHome() {
                 </h2>
                 <div className="space-y-3">
                   {enCamino.map((s) => (
-                    <TarjetaEnCamino key={s.id} solicitud={s} />
+                    <TarjetaEnCamino
+                      key={s.id}
+                      solicitud={s}
+                      wsRef={wsRef}
+                      rutaData={rutasActivas[s.id] ?? null}
+                    />
                   ))}
                 </div>
               </section>
