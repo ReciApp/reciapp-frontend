@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { listarSolicitudes } from "../api/solicitudes";
 import { getUsuario } from "../api/users";
 import { useWebSocket } from "../hooks/useWebSocket";
+import MapaTracking from "../components/MapaTracking/MapaTracking";
 
 // ── Config de estados ──────────────────────────────────────────────────────────
 const ESTADO = {
@@ -22,7 +23,7 @@ const TIPO_ICONO = {
 const FRANJA_LABEL = { manana: "Mañana 🌅", tarde: "Tarde ☀️", noche: "Noche 🌙" };
 
 // ── Tarjeta individual ─────────────────────────────────────────────────────────
-function SolicitudCard({ solicitud, recicladorCache, onFetchReciclador }) {
+function SolicitudCard({ solicitud, recicladorCache, onFetchReciclador, posicionReciclador }) {
   const [abierta, setAbierta] = useState(false);
   const { badge, icono, label } = ESTADO[solicitud.estado] || ESTADO.pendiente;
   const reciclador = solicitud.reciclador_id ? recicladorCache[solicitud.reciclador_id] : null;
@@ -70,6 +71,11 @@ function SolicitudCard({ solicitud, recicladorCache, onFetchReciclador }) {
             <Detail label="Estado" value={`${icono} ${label}`} />
           </div>
 
+          {/* Mapa de tracking cuando el reciclador está en camino */}
+          {solicitud.estado === "en_camino" && (
+            <MapaTracking solicitud={solicitud} posicionReciclador={posicionReciclador} />
+          )}
+
           {/* Datos del reciclador asignado */}
           {solicitud.reciclador_id && (
             <div className="mt-3 pt-3 border-t border-gray-200">
@@ -111,6 +117,7 @@ export default function MisSolicitudes() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [recicladorCache, setRecicladorCache] = useState({});
+  const [posicionesReciclador, setPosicionesReciclador] = useState({}); // solicitud_id → {lat,lon,etaMin}
   const [wsConectado, setWsConectado] = useState(false);
   const notifRef = useRef([]);
 
@@ -151,6 +158,13 @@ export default function MisSolicitudes() {
       }
       return updated;
     });
+
+    if (msg.tipo === "posicion_reciclador") {
+      setPosicionesReciclador((prev) => ({
+        ...prev,
+        [msg.solicitud_id]: { lat: msg.lat, lon: msg.lon, etaMin: msg.eta_min },
+      }));
+    }
   }, []);
 
   // Efecto para fetchear recicladores encolados por WS
@@ -218,6 +232,7 @@ export default function MisSolicitudes() {
               solicitud={s}
               recicladorCache={recicladorCache}
               onFetchReciclador={fetchReciclador}
+              posicionReciclador={posicionesReciclador[s.id] ?? null}
             />
           ))}
         </div>
