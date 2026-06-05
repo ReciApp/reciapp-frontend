@@ -14,3 +14,6 @@ export const aceptarSolicitud = (id) =>
 
 export const rechazarSolicitud = (id) =>
   client.put(`/api/solicitudes/${id}/rechazar`).then((r) => r.data);
+
+export const confirmarSolicitud = (id) =>
+  client.put(`/api/solicitudes/${id}/confirmar`).then((r) => r.data);
