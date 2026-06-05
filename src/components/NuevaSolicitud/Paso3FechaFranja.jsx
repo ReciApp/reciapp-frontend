@@ -1,9 +1,31 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
 
 const FRANJAS = [
-  { value: "manana", label: "Mañana",  icon: "🌅", hora: "7:00 – 12:00" },
-  { value: "tarde",  label: "Tarde",   icon: "☀️", hora: "12:00 – 18:00" },
-  { value: "noche",  label: "Noche",   icon: "🌙", hora: "18:00 – 22:00" },
+  {
+    value: "manana", label: "Mañana",  icon: "🌅",
+    hora: "7:00 – 12:00",
+    glow: "rgba(251,191,36,.45)",
+    bg: "rgba(251,191,36,.08)",
+    borderSel: "rgba(251,191,36,.55)",
+    colorSel: "#fbbf24",
+  },
+  {
+    value: "tarde", label: "Tarde", icon: "☀️",
+    hora: "12:00 – 18:00",
+    glow: "rgba(251,146,60,.45)",
+    bg: "rgba(251,146,60,.08)",
+    borderSel: "rgba(251,146,60,.55)",
+    colorSel: "#fb923c",
+  },
+  {
+    value: "noche", label: "Noche", icon: "🌙",
+    hora: "18:00 – 22:00",
+    glow: "rgba(167,139,250,.45)",
+    bg: "rgba(167,139,250,.08)",
+    borderSel: "rgba(167,139,250,.55)",
+    colorSel: "#c4b5fd",
+  },
 ];
 
 const hoy = new Date().toISOString().split("T")[0];
@@ -20,48 +42,104 @@ export default function Paso3FechaFranja({ form, onChange, onNext, onBack }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-1">¿Cuándo prefieres la recolección?</h3>
-      <p className="text-sm text-gray-500 mb-5">Elige fecha y franja horaria</p>
+      <h3 style={{
+        fontFamily: "var(--font-display)", fontWeight: 700,
+        color: "white", fontSize: "1.1rem", marginBottom: "0.35rem",
+      }}>
+        ¿Cuándo prefieres la recolección?
+      </h3>
+      <p style={{ color: "rgba(255,255,255,.45)", fontSize: "0.85rem", marginBottom: "1.4rem" }}>
+        Elige fecha y franja horaria
+      </p>
 
-      <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
+      {/* Date picker */}
+      <label style={{
+        display: "block", fontFamily: "var(--font-display)", fontWeight: 600,
+        fontSize: "0.85rem", color: "rgba(255,255,255,.6)", marginBottom: "0.5rem",
+      }}>
+        Fecha
+      </label>
       <input
         type="date"
         min={hoy}
         value={form.fecha_recoleccion}
         onChange={(e) => { onChange("fecha_recoleccion", e.target.value); setError(""); }}
-        className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:border-emerald-500 transition mb-5"
+        className="input"
+        style={{
+          colorScheme: "dark",
+          marginBottom: "1.4rem",
+          fontFamily: "var(--font-body)",
+          fontSize: "1rem",
+        }}
       />
 
-      <label className="block text-sm font-medium text-gray-700 mb-3">Franja horaria</label>
-      <div className="grid grid-cols-3 gap-3">
-        {FRANJAS.map(({ value, label, icon, hora }) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => { onChange("franja_horaria", value); setError(""); }}
-            className={`flex flex-col items-center p-3 rounded-xl border-2 transition-all
-              ${form.franja_horaria === value
-                ? "border-emerald-500 bg-emerald-50"
-                : "border-gray-200 bg-white hover:border-emerald-300"}`}
-          >
-            <span className="text-2xl mb-1">{icon}</span>
-            <span className={`text-sm font-medium ${form.franja_horaria === value ? "text-emerald-700" : "text-gray-700"}`}>
-              {label}
-            </span>
-            <span className="text-xs text-gray-400 mt-0.5">{hora}</span>
-          </button>
-        ))}
+      {/* Franjas */}
+      <label style={{
+        display: "block", fontFamily: "var(--font-display)", fontWeight: 600,
+        fontSize: "0.85rem", color: "rgba(255,255,255,.6)", marginBottom: "0.6rem",
+      }}>
+        Franja horaria
+      </label>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.65rem", marginBottom: "1.25rem" }}>
+        {FRANJAS.map(({ value, label, icon, hora, glow, bg, borderSel, colorSel }, i) => {
+          const sel = form.franja_horaria === value;
+          return (
+            <motion.button
+              key={value}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ type: "spring", stiffness: 280, damping: 22, delay: i * 0.06 }}
+              whileHover={{ scale: 1.04, y: -2 }}
+              whileTap={{ scale: 0.97 }}
+              type="button"
+              onClick={() => { onChange("franja_horaria", value); setError(""); }}
+              style={{
+                display: "flex", flexDirection: "column", alignItems: "center",
+                padding: "0.9rem 0.5rem", borderRadius: "var(--radius)",
+                border: sel ? `1.5px solid ${borderSel}` : "1.5px solid rgba(255,255,255,.08)",
+                background: sel ? bg : "rgba(255,255,255,.06)",
+                cursor: "pointer", transition: "all .25s",
+                boxShadow: sel ? `0 0 18px ${glow}, 0 0 36px rgba(0,0,0,.1)` : "none",
+              }}
+            >
+              <span style={{ fontSize: "1.6rem", marginBottom: "0.4rem", lineHeight: 1 }}>{icon}</span>
+              <span style={{
+                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.82rem",
+                color: sel ? colorSel : "rgba(255,255,255,.7)", marginBottom: "0.2rem",
+              }}>
+                {label}
+              </span>
+              <span style={{ color: "rgba(255,255,255,.35)", fontSize: "0.7rem" }}>{hora}</span>
+            </motion.button>
+          );
+        })}
       </div>
 
-      {error && <p className="text-red-500 text-sm mt-3">{error}</p>}
+      {error && (
+        <p style={{ color: "#f87171", fontSize: "0.82rem", marginBottom: "0.75rem" }}>{error}</p>
+      )}
 
-      <div className="mt-6 flex justify-between">
-        <button type="button" onClick={onBack} className="px-6 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+      {/* Nav */}
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          type="button"
+          onClick={onBack}
+          className="btn-ghost"
+        >
           ← Atrás
-        </button>
-        <button type="button" onClick={handleNext} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition">
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.04, y: -1 }}
+          whileTap={{ scale: 0.97 }}
+          type="button"
+          onClick={handleNext}
+          className="btn-lime"
+          style={{ fontSize: "0.9rem", padding: "0.65rem 1.75rem" }}
+        >
           Siguiente →
-        </button>
+        </motion.button>
       </div>
     </div>
   );
