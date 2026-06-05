@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { motion } from "framer-motion";
+
+const QUICK_PICKS = [1, 2, 5, 10, 20];
 
 export default function Paso2Cantidad({ form, onChange, onNext, onBack }) {
   const [error, setError] = useState("");
@@ -15,35 +18,105 @@ export default function Paso2Cantidad({ form, onChange, onNext, onBack }) {
 
   return (
     <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-1">¿Cuántos kilogramos aproximadamente?</h3>
-      <p className="text-sm text-gray-500 mb-6">Ingresa el peso estimado del material a reciclar</p>
+      <h3 style={{
+        fontFamily: "var(--font-display)", fontWeight: 700,
+        color: "white", fontSize: "1.1rem", marginBottom: "0.35rem",
+      }}>
+        ¿Cuántos kilogramos aproximadamente?
+      </h3>
+      <p style={{ color: "rgba(255,255,255,.45)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
+        Ingresa el peso estimado del material a reciclar
+      </p>
 
-      <div className="relative">
+      {/* Big input */}
+      <div style={{ position: "relative", marginBottom: "0.5rem" }}>
         <input
           type="number"
           min="0.1"
           step="0.1"
           value={form.cantidad_kg}
-          onChange={(e) => {
-            onChange("cantidad_kg", e.target.value);
-            setError("");
+          onChange={(e) => { onChange("cantidad_kg", e.target.value); setError(""); }}
+          placeholder="0.0"
+          style={{
+            width: "100%", fontFamily: "var(--font-display)", fontWeight: 700,
+            fontSize: "2rem", textAlign: "center",
+            background: "rgba(255,255,255,.07)", color: "white",
+            border: error ? "1.5px solid rgba(239,68,68,.5)" : "1.5px solid rgba(255,255,255,.12)",
+            borderRadius: "var(--radius-sm)", padding: "0.9rem 3.5rem 0.9rem 1rem",
+            outline: "none", transition: "all .2s",
           }}
-          placeholder="Ej: 2.5"
-          className={`w-full border-2 rounded-xl px-4 py-3 pr-12 text-lg focus:outline-none transition
-            ${error ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-emerald-500"}`}
+          onFocus={(e) => {
+            e.target.style.borderColor = "rgba(132,204,22,.5)";
+            e.target.style.boxShadow = "0 0 0 3px rgba(132,204,22,.12)";
+          }}
+          onBlur={(e) => {
+            e.target.style.borderColor = error ? "rgba(239,68,68,.5)" : "rgba(255,255,255,.12)";
+            e.target.style.boxShadow = "none";
+          }}
         />
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">kg</span>
+        <span style={{
+          position: "absolute", right: "1.1rem", top: "50%", transform: "translateY(-50%)",
+          color: "rgba(255,255,255,.4)", fontFamily: "var(--font-display)",
+          fontWeight: 700, fontSize: "1.1rem",
+        }}>
+          kg
+        </span>
       </div>
 
-      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+      {error && (
+        <p style={{ color: "#f87171", fontSize: "0.82rem", marginBottom: "0.75rem" }}>{error}</p>
+      )}
 
-      <div className="mt-8 flex justify-between">
-        <button type="button" onClick={onBack} className="px-6 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+      {/* Quick picks */}
+      <p style={{ color: "rgba(255,255,255,.35)", fontSize: "0.78rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
+        Acceso rápido
+      </p>
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
+        {QUICK_PICKS.map((kg) => {
+          const selected = parseFloat(form.cantidad_kg) === kg;
+          return (
+            <motion.button
+              key={kg}
+              whileHover={{ scale: 1.06 }}
+              whileTap={{ scale: 0.95 }}
+              type="button"
+              onClick={() => { onChange("cantidad_kg", kg.toString()); setError(""); }}
+              style={{
+                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.82rem",
+                padding: "0.4rem 0.85rem", borderRadius: "var(--radius-pill)",
+                border: selected ? "1.5px solid rgba(132,204,22,.6)" : "1.5px solid rgba(255,255,255,.12)",
+                background: selected ? "rgba(132,204,22,.12)" : "rgba(255,255,255,.06)",
+                color: selected ? "#a3e635" : "rgba(255,255,255,.6)",
+                cursor: "pointer", transition: "all .2s",
+              }}
+            >
+              {kg} kg
+            </motion.button>
+          );
+        })}
+      </div>
+
+      {/* Nav */}
+      <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          type="button"
+          onClick={onBack}
+          className="btn-ghost"
+        >
           ← Atrás
-        </button>
-        <button type="button" onClick={handleNext} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition">
+        </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.04, y: -1 }}
+          whileTap={{ scale: 0.97 }}
+          type="button"
+          onClick={handleNext}
+          className="btn-lime"
+          style={{ fontSize: "0.9rem", padding: "0.65rem 1.75rem" }}
+        >
           Siguiente →
-        </button>
+        </motion.button>
       </div>
     </div>
   );
