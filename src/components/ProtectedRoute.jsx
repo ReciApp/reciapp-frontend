@@ -1,22 +1,20 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function ProtectedRoute({ children, roles }) {
+const ROLE_HOME = { ciudadano: "/ciudadano", reciclador: "/reciclador", admin: "/admin" };
+
+export default function ProtectedRoute({ roles, children }) {
   const { user, loading } = useAuth();
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <span className="text-gray-500 text-sm">Cargando...</span>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (roles && !roles.includes(user.rol)) {
-    return <Navigate to="/sin-acceso" replace />;
+  if (roles && roles.length > 0 && !roles.includes(user.rol)) {
+    return <Navigate to={ROLE_HOME[user.rol] || "/login"} replace />;
   }
 
-  return children;
+  // Soporta tanto el patrón Outlet (<Route element={<ProtectedRoute />}>)
+  // como el patrón children (<ProtectedRoute><Page /></ProtectedRoute>).
+  return children ?? <Outlet />;
 }

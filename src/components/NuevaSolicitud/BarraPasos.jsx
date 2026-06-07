@@ -1,78 +1,26 @@
-import { motion } from "framer-motion";
+import React from "react";
+import { Icon } from "../ui/Primitivos";
 
-const PASOS = [
-  { label: "Tipo",     icon: "♻" },
-  { label: "Cantidad", icon: "⚖" },
-  { label: "Fecha",    icon: "📅" },
-  { label: "Confirmar", icon: "✓" },
-];
+export const PASOS = ["Tipo", "Cantidad", "Fecha", "Confirmar"];
 
-export default function BarraPasos({ actual }) {
+export default function BarraPasos({ paso, total = 4 }) {
   return (
-    <div style={{
-      display: "flex", alignItems: "center",
-      justifyContent: "space-between", marginBottom: "2rem",
-    }}>
-      {PASOS.map(({ label, icon }, i) => {
-        const n = i + 1;
-        const done   = n < actual;
-        const active = n === actual;
-
+    <div style={{ display: "flex", alignItems: "center", gap: 0, width: "100%" }}>
+      {PASOS.map((label, i) => {
+        const done = i < paso, active = i === paso;
         return (
-          <div key={n} style={{ display: "flex", alignItems: "center", flex: i < PASOS.length - 1 ? 1 : "none" }}>
-            {/* Step circle */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <motion.div
-                animate={active ? { scale: [1, 1.08, 1] } : {}}
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-                style={{
-                  width: 38, height: 38, borderRadius: "50%",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: "1rem", fontWeight: 800, fontFamily: "var(--font-display)",
-                  position: "relative", transition: "all .3s",
-                  ...(done ? {
-                    background: "rgba(132,204,22,.18)",
-                    border: "2px solid rgba(132,204,22,.5)",
-                    color: "#a3e635",
-                  } : active ? {
-                    background: "linear-gradient(135deg,#a3e635,#84cc16)",
-                    border: "2px solid rgba(132,204,22,.6)",
-                    color: "#14532d",
-                    boxShadow: "0 0 20px rgba(132,204,22,.45), 0 0 40px rgba(132,204,22,.2)",
-                  } : {
-                    background: "rgba(255,255,255,.05)",
-                    border: "2px solid rgba(255,255,255,.12)",
-                    color: "rgba(255,255,255,.3)",
-                  }),
-                }}
-              >
-                {icon}
-              </motion.div>
-              <span style={{
-                fontSize: "0.7rem", marginTop: "0.35rem", fontFamily: "var(--font-display)",
-                fontWeight: 700,
-                color: active
-                  ? "#a3e635"
-                  : done
-                  ? "rgba(132,204,22,.7)"
-                  : "rgba(255,255,255,.3)",
-              }}>
-                {label}
+          <React.Fragment key={label}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0 }}>
+              <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0,
+                background: done ? "var(--green)" : active ? "var(--green)" : "var(--cream)", color: done || active ? "#fff" : "var(--ink-soft)",
+                border: "2px solid " + (done || active ? "var(--green)" : "var(--line)"), fontFamily: "var(--serif)", fontSize: 16,
+                boxShadow: active ? "0 0 0 4px oklch(0.66 0.15 142 / 0.2)" : "none", transition: "all .2s" }}>
+                {done ? <Icon name="check" size={17} stroke="#fff" sw={3} /> : i + 1}
               </span>
+              <span style={{ fontFamily: "var(--sans)", fontWeight: active ? 700 : 600, fontSize: 11.5, color: done || active ? "var(--ink)" : "var(--ink-soft)" }}>{label}</span>
             </div>
-
-            {/* Connector line */}
-            {i < PASOS.length - 1 && (
-              <div style={{
-                flex: 1, height: 2, marginInline: "0.5rem", marginBottom: "1.3rem",
-                background: done
-                  ? "linear-gradient(90deg,rgba(132,204,22,.7),rgba(132,204,22,.35))"
-                  : "rgba(255,255,255,.08)",
-                borderRadius: 2,
-                transition: "background .4s",
-              }} />
-            )}
-          </div>
+            {i < total - 1 && <span style={{ flex: 1, height: 3, borderRadius: 2, margin: "0 6px", marginBottom: 18, background: i < paso ? "var(--green)" : "var(--line)", transition: "background .2s" }} />}
+          </React.Fragment>
         );
       })}
     </div>

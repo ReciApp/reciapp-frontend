@@ -1,122 +1,34 @@
-import { useState } from "react";
-import { motion } from "framer-motion";
+import React from "react";
+import { Icon } from "../ui/Primitivos";
 
-const QUICK_PICKS = [1, 2, 5, 10, 20];
+const stepperBtn = { width: 56, height: 56, borderRadius: 18, border: "1.5px solid var(--line)", background: "var(--cream-card)", display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 3px 0 oklch(0.88 0.03 120)" };
 
-export default function Paso2Cantidad({ form, onChange, onNext, onBack }) {
-  const [error, setError] = useState("");
-
-  const handleNext = () => {
-    const val = parseFloat(form.cantidad_kg);
-    if (!form.cantidad_kg || isNaN(val) || val <= 0) {
-      setError("Ingresa una cantidad mayor a 0 kg");
-      return;
-    }
-    setError("");
-    onNext();
-  };
-
+export default function Paso2Cantidad({ data, set }) {
+  const kg = data.kg;
+  const step = (d) => set({ kg: Math.max(1, Math.min(200, kg + d)) });
   return (
-    <div>
-      <h3 style={{
-        fontFamily: "var(--font-display)", fontWeight: 700,
-        color: "white", fontSize: "1.1rem", marginBottom: "0.35rem",
-      }}>
-        ¿Cuántos kilogramos aproximadamente?
-      </h3>
-      <p style={{ color: "rgba(255,255,255,.45)", fontSize: "0.85rem", marginBottom: "1.5rem" }}>
-        Ingresa el peso estimado del material a reciclar
-      </p>
+    <div className="screen">
+      <h3 style={{ fontFamily: "var(--serif)", fontSize: 25, color: "var(--ink)", margin: "0 0 4px" }}>Cantidad aproximada</h3>
+      <p style={{ fontFamily: "var(--sans)", fontSize: 14.5, color: "var(--ink-soft)", margin: "0 0 22px" }}>Estima el peso total de tus materiales.</p>
 
-      {/* Big input */}
-      <div style={{ position: "relative", marginBottom: "0.5rem" }}>
-        <input
-          type="number"
-          min="0.1"
-          step="0.1"
-          value={form.cantidad_kg}
-          onChange={(e) => { onChange("cantidad_kg", e.target.value); setError(""); }}
-          placeholder="0.0"
-          style={{
-            width: "100%", fontFamily: "var(--font-display)", fontWeight: 700,
-            fontSize: "2rem", textAlign: "center",
-            background: "rgba(255,255,255,.07)", color: "white",
-            border: error ? "1.5px solid rgba(239,68,68,.5)" : "1.5px solid rgba(255,255,255,.12)",
-            borderRadius: "var(--radius-sm)", padding: "0.9rem 3.5rem 0.9rem 1rem",
-            outline: "none", transition: "all .2s",
-          }}
-          onFocus={(e) => {
-            e.target.style.borderColor = "rgba(132,204,22,.5)";
-            e.target.style.boxShadow = "0 0 0 3px rgba(132,204,22,.12)";
-          }}
-          onBlur={(e) => {
-            e.target.style.borderColor = error ? "rgba(239,68,68,.5)" : "rgba(255,255,255,.12)";
-            e.target.style.boxShadow = "none";
-          }}
-        />
-        <span style={{
-          position: "absolute", right: "1.1rem", top: "50%", transform: "translateY(-50%)",
-          color: "rgba(255,255,255,.4)", fontFamily: "var(--font-display)",
-          fontWeight: 700, fontSize: "1.1rem",
-        }}>
-          kg
-        </span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 22, marginBottom: 24 }}>
+        <button type="button" onClick={() => step(-1)} style={stepperBtn}><Icon name="minus" size={22} stroke="var(--green-deep)" /></button>
+        <div style={{ textAlign: "center", minWidth: 140 }}>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 72, color: "var(--green-deep)", lineHeight: 1 }}>{kg}</div>
+          <div style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 16, color: "var(--ink-soft)", letterSpacing: 1, textTransform: "uppercase" }}>kilogramos</div>
+        </div>
+        <button type="button" onClick={() => step(1)} style={stepperBtn}><Icon name="plus" size={22} stroke="var(--green-deep)" /></button>
       </div>
 
-      {error && (
-        <p style={{ color: "#f87171", fontSize: "0.82rem", marginBottom: "0.75rem" }}>{error}</p>
-      )}
-
-      {/* Quick picks */}
-      <p style={{ color: "rgba(255,255,255,.35)", fontSize: "0.78rem", marginBottom: "0.5rem", marginTop: "1rem" }}>
-        Acceso rápido
-      </p>
-      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-        {QUICK_PICKS.map((kg) => {
-          const selected = parseFloat(form.cantidad_kg) === kg;
-          return (
-            <motion.button
-              key={kg}
-              whileHover={{ scale: 1.06 }}
-              whileTap={{ scale: 0.95 }}
-              type="button"
-              onClick={() => { onChange("cantidad_kg", kg.toString()); setError(""); }}
-              style={{
-                fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.82rem",
-                padding: "0.4rem 0.85rem", borderRadius: "var(--radius-pill)",
-                border: selected ? "1.5px solid rgba(132,204,22,.6)" : "1.5px solid rgba(255,255,255,.12)",
-                background: selected ? "rgba(132,204,22,.12)" : "rgba(255,255,255,.06)",
-                color: selected ? "#a3e635" : "rgba(255,255,255,.6)",
-                cursor: "pointer", transition: "all .2s",
-              }}
-            >
-              {kg} kg
-            </motion.button>
-          );
-        })}
-      </div>
-
-      {/* Nav */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <motion.button
-          whileHover={{ scale: 1.03 }}
-          whileTap={{ scale: 0.97 }}
-          type="button"
-          onClick={onBack}
-          className="btn-ghost"
-        >
-          ← Atrás
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.04, y: -1 }}
-          whileTap={{ scale: 0.97 }}
-          type="button"
-          onClick={handleNext}
-          className="btn-lime"
-          style={{ fontSize: "0.9rem", padding: "0.65rem 1.75rem" }}
-        >
-          Siguiente →
-        </motion.button>
+      <input type="range" min="1" max="50" value={Math.min(kg, 50)} onChange={(e) => set({ kg: parseInt(e.target.value, 10) })}
+        style={{ width: "100%", accentColor: "var(--green)", height: 6 }} />
+      <div style={{ display: "flex", gap: 9, marginTop: 18, flexWrap: "wrap", justifyContent: "center" }}>
+        {[2, 5, 10, 20, 40].map((v) => (
+          <button key={v} type="button" onClick={() => set({ kg: v })} style={{
+            fontFamily: "var(--sans)", fontWeight: 700, fontSize: 14, padding: "9px 16px", borderRadius: 999, cursor: "pointer",
+            border: "1.5px solid " + (kg === v ? "var(--green)" : "var(--line)"), background: kg === v ? "var(--green)" : "var(--cream-card)", color: kg === v ? "#fff" : "var(--ink)",
+          }}>{v} kg</button>
+        ))}
       </div>
     </div>
   );

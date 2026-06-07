@@ -1,98 +1,56 @@
-import { useState } from "react";
+import React, { useState } from "react";
+import { Icon, Avatar } from "../ui/Primitivos";
+import { MAT } from "../../lib/datos";
 import Temporizador from "./Temporizador";
-import { aceptarSolicitud, rechazarSolicitud } from "../../api/solicitudes";
 
-const TIPO_ICONO = {
-  plastico: "🧴", papel: "📄", vidrio: "🍶",
-  metal: "🔩", organico: "🍃", electronico: "💻",
-};
-const FRANJA_LABEL = { manana: "Mañana 🌅", tarde: "Tarde ☀️", noche: "Noche 🌙" };
-
-export default function TarjetaSolicitudEntrante({ solicitud, onAceptada, onRechazada }) {
-  const [loading, setLoading] = useState(null); // "aceptar" | "rechazar" | null
-  const [error, setError] = useState("");
-
-  const handleAceptar = async () => {
-    setLoading("aceptar");
-    setError("");
-    try {
-      const updated = await aceptarSolicitud(solicitud.id);
-      onAceptada(updated);
-    } catch (e) {
-      setError(e.response?.data?.detail || "Error al aceptar");
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handleRechazar = async () => {
-    setLoading("rechazar");
-    setError("");
-    try {
-      await rechazarSolicitud(solicitud.id);
-      onRechazada(solicitud.id);
-    } catch (e) {
-      setError(e.response?.data?.detail || "Error al rechazar");
-    } finally {
-      setLoading(null);
-    }
-  };
+export default function TarjetaSolicitudEntrante({ s, onAceptar, onRechazar }) {
+  const [estado, setEstado] = useState("idle");
 
   return (
-    <div className="bg-white border-2 border-blue-200 rounded-xl shadow-sm p-5 space-y-3">
-      {/* Encabezado */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="text-3xl">{TIPO_ICONO[solicitud.tipo_residuo] ?? "♻"}</span>
-          <div>
-            <p className="font-bold text-gray-800 capitalize">{solicitud.tipo_residuo}</p>
-            <p className="text-sm text-gray-500">{solicitud.cantidad_kg} kg</p>
+    <div style={{ background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, padding: "18px 20px", boxShadow: "0 2px 0 oklch(0.88 0.03 120)" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", gap: 12, minWidth: 0 }}>
+          <Avatar name={s.ciudadano} size={42} bg="var(--green-soft)" />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 19, color: "var(--ink)" }}>{s.ciudadano}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 4, fontFamily: "var(--sans)", fontWeight: 700, fontSize: 12, color: "var(--green-deep)", background: "color-mix(in oklch, var(--green) 14%, var(--cream))", borderRadius: 999, padding: "2px 9px" }}><Icon name="gps" size={12} stroke="var(--green-deep)" />{s.dist}</span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 6, fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="weight" size={15} stroke="var(--ink-soft)" />{s.kg} kg</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="calendar" size={15} stroke="var(--ink-soft)" />{s.franja}</span>
+            </div>
           </div>
         </div>
-        <span className="text-xs bg-blue-100 text-blue-700 border border-blue-200 px-2.5 py-1 rounded-full font-medium shrink-0">
-          👷 Nueva solicitud
-        </span>
+        <Temporizador minutos={s.min || 3} />
       </div>
 
-      {/* Datos */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm">
-        <div>
-          <p className="text-xs text-gray-400">Fecha</p>
-          <p className="font-medium text-gray-700">{solicitud.fecha_recoleccion}</p>
-        </div>
-        <div>
-          <p className="text-xs text-gray-400">Franja</p>
-          <p className="font-medium text-gray-700">{FRANJA_LABEL[solicitud.franja_horaria]}</p>
-        </div>
-        <div className="col-span-2">
-          <p className="text-xs text-gray-400">Dirección</p>
-          <p className="font-medium text-gray-700">{solicitud.direccion}</p>
-        </div>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 14 }}>
+        {(s.tipos || []).map((t) => (
+          <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 7, background: "var(--cream)", border: "1.5px solid var(--line)", borderRadius: 999, padding: "6px 13px 6px 7px", fontFamily: "var(--sans)", fontWeight: 600, fontSize: 13, color: "var(--ink)" }}>
+            <span style={{ width: 22, height: 22, borderRadius: 7, background: MAT[t]?.color, display: "grid", placeItems: "center" }}><Icon name={MAT[t]?.icon} size={13} stroke="#fff" /></span>{MAT[t]?.label || t}
+          </span>
+        ))}
       </div>
+      <p style={{ display: "flex", alignItems: "center", gap: 6, fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)", margin: "12px 0 0" }}><Icon name="pin" size={15} stroke="var(--ink-soft)" />{s.direccion}</p>
 
-      {/* Temporizador */}
-      <Temporizador fechaAsignacion={solicitud.fecha_asignacion} />
-
-      {/* Error */}
-      {error && <p className="text-xs text-red-500">{error}</p>}
-
-      {/* Acciones */}
-      <div className="flex gap-3 pt-1">
-        <button
-          onClick={handleAceptar}
-          disabled={!!loading}
-          className="flex-1 py-2 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700 disabled:opacity-50 transition text-sm"
-        >
-          {loading === "aceptar" ? "⏳ Aceptando..." : "✅ Aceptar"}
-        </button>
-        <button
-          onClick={handleRechazar}
-          disabled={!!loading}
-          className="flex-1 py-2 border-2 border-red-300 text-red-600 rounded-lg font-semibold hover:bg-red-50 disabled:opacity-50 transition text-sm"
-        >
-          {loading === "rechazar" ? "⏳ Rechazando..." : "❌ Rechazar"}
-        </button>
-      </div>
+      {estado === "resuelta" ? (
+        <div className="screen" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--sans)", fontWeight: 600, fontSize: 14, color: "var(--green-deep)" }}><Icon name="check" size={17} stroke="var(--green-deep)" />Solicitud aceptada — revisa tu ruta activa.</div>
+      ) : (
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button type="button" onClick={() => { setEstado("resuelta"); onAceptar && onAceptar(s); }}
+            style={{ flex: 1, fontFamily: "var(--serif)", fontSize: 17, color: "#fff", background: "var(--green)", border: "none", borderRadius: 999, padding: 12, cursor: "pointer", boxShadow: "0 4px 0 var(--green-deep)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = "0 2px 0 var(--green-deep)"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 0 var(--green-deep)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 0 var(--green-deep)"; }}>
+            <Icon name="check" size={19} stroke="#fff" />Aceptar
+          </button>
+          <button type="button" onClick={() => { setEstado("resuelta"); onRechazar && onRechazar(s); }}
+            style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 15, color: "var(--ink-soft)", background: "var(--cream)", border: "1.5px solid var(--line)", borderRadius: 999, padding: "12px 22px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <Icon name="x" size={17} stroke="var(--ink-soft)" />Rechazar
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,96 +1,82 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { login } from "../api/auth";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Field, EyeToggle, PrimaryButton, Icon } from "../components/ui/Primitivos";
+import { login as apiLogin } from "../api/auth";
 import { getMe } from "../api/users";
 import { useAuth } from "../context/AuthContext";
-import Particles from "../components/ui/Particles";
-import MagneticButton from "../components/ui/MagneticButton";
-import LiquidGlass from "../components/ui/LiquidGlass";
 
-const ROLE_REDIRECT = { ciudadano:"/ciudadano", reciclador:"/reciclador", admin:"/admin" };
-const spring = { type:"spring", stiffness:300, damping:28 };
+const HOME = { ciudadano: "/ciudadano", reciclador: "/reciclador", admin: "/admin" };
+
+function CtaCard({ iconBg, icon, top, sub, onClick }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button type="button" onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
+      style={{ display: "flex", alignItems: "center", gap: 13, textAlign: "left", width: "100%", background: "var(--cream)", border: "1.5px solid " + (hover ? "var(--green)" : "var(--line)"), borderRadius: 15, padding: "13px 15px", cursor: "pointer", transition: "border-color .15s, transform .14s", transform: hover ? "translateX(3px)" : "none" }}>
+      <span style={{ width: 38, height: 38, borderRadius: 11, background: iconBg, flexShrink: 0, display: "grid", placeItems: "center", color: "#fff" }}><Icon name={icon} size={20} stroke="#fff" /></span>
+      <span style={{ flex: 1 }}>
+        <span style={{ display: "block", fontFamily: "var(--sans)", fontWeight: 700, fontSize: 14.5, color: "var(--ink)" }}>{top}</span>
+        <span style={{ display: "block", fontFamily: "var(--sans)", fontSize: 12.5, color: "var(--ink-soft)", marginTop: 1 }}>{sub}</span>
+      </span>
+      <Icon name="arrowRight" size={18} stroke="var(--ink-soft)" sw={2.2} />
+    </button>
+  );
+}
 
 export default function Login() {
   const navigate = useNavigate();
   const { login: setUser } = useAuth();
-  const [form, setForm]   = useState({ correo:"", contrasena:"" });
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [focused, setFocused] = useState(null);
+  const [email, setEmail] = useState("");
+  const [pass, setPass] = useState("");
+  const [show, setShow] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState("idle");
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
+  const submit = async (ev) => {
+    ev.preventDefault();
+    const e = {};
+    if (!email.trim()) e.email = "Ingresa tu correo electrónico.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = "El correo no es válido.";
+    if (!pass) e.pass = "Ingresa tu contraseña.";
+    else if (pass.length < 6) e.pass = "Mínimo 6 caracteres.";
+    setErrors(e);
+    if (Object.keys(e).length) return;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault(); setError(""); setLoading(true);
+    setStatus("loading");
     try {
-      await login(form.correo, form.contrasena);
+      await apiLogin(email, pass);
       const user = await getMe();
       setUser(user);
-      navigate(ROLE_REDIRECT[user.rol] || "/perfil", { replace:true });
-    } catch (err) { setError(err.response?.data?.detail || "Credenciales incorrectas."); }
-    finally { setLoading(false); }
+      navigate(HOME[user.rol] || "/ciudadano", { replace: true });
+    } catch {
+      setStatus("idle");
+      setErrors({ pass: "Correo o contraseña incorrectos." });
+    }
   };
 
-  const inputStyle = (field) => ({
-    width:"100%", fontFamily:"var(--font-body)", fontSize:"0.9375rem",
-    background: focused===field ? "rgba(255,255,255,.14)" : "rgba(255,255,255,.07)",
-    color:"white", border:`1.5px solid ${focused===field ? "rgba(132,204,22,.55)" : "rgba(255,255,255,.12)"}`,
-    borderRadius:"var(--radius-sm)", padding:"0.8rem 1rem", outline:"none", transition:"all .25s",
-    boxShadow: focused===field ? "0 0 0 3px rgba(132,204,22,.12)" : "none",
-  });
-
   return (
-    <div style={{ minHeight:"100dvh", position:"relative", overflow:"hidden", background:"linear-gradient(160deg,#050f08 0%,#0d2015 45%,#0a1a10 100%)", display:"flex", alignItems:"center", justifyContent:"center", padding:"1.5rem" }}>
-      <Particles count={70} color="132,204,22" opacity={0.5} />
-      <div className="aurora-orb orb-1" style={{ position:"absolute", width:600, height:600, background:"radial-gradient(circle,rgba(132,204,22,.14) 0%,transparent 70%)", top:"-15%", right:"-10%", filter:"blur(70px)", zIndex:0 }} />
-      <div className="aurora-orb orb-2" style={{ position:"absolute", width:500, height:500, background:"radial-gradient(circle,rgba(22,163,74,.1) 0%,transparent 70%)", bottom:"-12%", left:"-8%", filter:"blur(70px)", zIndex:0 }} />
+    <div style={{ width: "100%", maxWidth: 400, marginInline: "auto" }}>
+        <h2 style={{ fontFamily: "var(--serif)", fontSize: "clamp(30px, 3.6vw, 40px)", color: "var(--ink)", margin: "0 0 16px", lineHeight: 1.18 }}>Bienvenido<br />de <span style={{ color: "var(--green)", fontStyle: "italic" }}>nuevo</span></h2>
+        <p style={{ fontFamily: "var(--sans)", color: "var(--ink-soft)", margin: "0 0 26px", fontSize: 15.5 }}>Inicia sesión para seguir reciclando.</p>
 
-      <motion.div initial={{ opacity:0, y:40, scale:0.94 }} animate={{ opacity:1, y:0, scale:1 }} transition={{ ...spring, delay:.1 }} style={{ position:"relative", zIndex:10, width:"100%", maxWidth:420 }}>
-        <LiquidGlass borderRadius={24} blur={48} ior={1.62} tint="rgba(8,22,12,0.78)" specular={true} style={{ width:"100%", boxShadow:"0 48px 120px rgba(0,0,0,.6)" }}>
-
-          <div style={{ padding:"2.25rem 2rem 1.75rem", textAlign:"center", borderBottom:"1px solid rgba(255,255,255,.07)", background:"rgba(255,255,255,.03)" }}>
-            <div style={{ width:60, height:60, borderRadius:18, background:"linear-gradient(135deg,#a3e635,#84cc16)", boxShadow:"0 4px 20px rgba(132,204,22,.6),inset 0 1px 0 rgba(255,255,255,.4)", display:"inline-flex", alignItems:"center", justifyContent:"center", fontSize:"1.75rem", marginBottom:"1rem", animation:"glow-pulse 3s ease-in-out infinite" }}>♻</div>
-            <h1 style={{ fontFamily:"var(--font-display)", fontWeight:800, fontSize:"1.625rem", letterSpacing:"-0.03em", color:"white" }}>
-              Reci<span style={{ color:"#a3e635" }}>App</span>
-            </h1>
-            <p style={{ color:"rgba(255,255,255,.55)", fontSize:"0.875rem", marginTop:6 }}>Reciclaje inteligente en Lima</p>
+        <form onSubmit={submit} noValidate style={{ display: "flex", flexDirection: "column", gap: 17 }}>
+          <Field label="Correo electrónico" name="email" type="email" autoComplete="email" value={email} onChange={(v) => { setEmail(v); if (errors.email) setErrors({ ...errors, email: null }); }} placeholder="tucorreo@ejemplo.com" error={errors.email} />
+          <Field label="Contraseña" name="password" type={show ? "text" : "password"} autoComplete="current-password" value={pass} onChange={(v) => { setPass(v); if (errors.pass) setErrors({ ...errors, pass: null }); }} placeholder="••••••••" error={errors.pass} trailing={<EyeToggle show={show} onClick={() => setShow(!show)} />} />
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: -4 }}>
+            <a href="#" onClick={(e) => e.preventDefault()} style={{ fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)", textDecoration: "none", fontWeight: 500, whiteSpace: "nowrap" }}>¿Olvidaste tu contraseña?</a>
           </div>
+          <PrimaryButton loading={status === "loading"} full>Iniciar sesión</PrimaryButton>
+        </form>
 
-          <form onSubmit={handleSubmit} style={{ padding:"1.75rem 2rem 2rem" }}>
-            {["correo","contrasena"].map((field, i) => (
-              <motion.div key={field} initial={{ opacity:0, x:-20 }} animate={{ opacity:1, x:0 }} transition={{ ...spring, delay:0.35 + i*0.08 }} style={{ marginBottom:"1rem" }}>
-                <label style={{ fontFamily:"var(--font-display)", fontWeight:600, fontSize:"0.72rem", letterSpacing:"0.05em", textTransform:"uppercase", color:"rgba(255,255,255,.4)", display:"block", marginBottom:7 }}>
-                  {field === "correo" ? "Correo electrónico" : "Contraseña"}
-                </label>
-                <input type={field==="contrasena"?"password":"email"} name={field} required value={form[field]} onChange={handleChange}
-                  onFocus={()=>setFocused(field)} onBlur={()=>setFocused(null)}
-                  placeholder={field==="correo"?"tu@correo.com":"••••••••"} style={inputStyle(field)} />
-              </motion.div>
-            ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 14, margin: "24px 0 18px" }}>
+          <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+          <span style={{ fontFamily: "var(--sans)", fontSize: 12.5, color: "var(--ink-soft)", letterSpacing: 0.5 }}>¿AÚN NO TIENES CUENTA?</span>
+          <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        </div>
 
-            <AnimatePresence>
-              {error && (
-                <motion.div initial={{ opacity:0, height:0 }} animate={{ opacity:1, height:"auto" }} exit={{ opacity:0, height:0 }}
-                  style={{ overflow:"hidden", background:"rgba(239,68,68,.12)", border:"1px solid rgba(239,68,68,.25)", borderRadius:"var(--radius-sm)", padding:"0.625rem 1rem", color:"#fca5a5", fontSize:"0.8rem", marginBottom:"1rem" }}>
-                  {error}
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            <motion.div initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} transition={{ ...spring, delay:.55 }}>
-              <MagneticButton type="submit" disabled={loading} className="btn-lime" style={{ width:"100%", fontSize:"0.9375rem", marginTop:4 }}>
-                {loading ? <motion.span animate={{ opacity:[1,.4,1] }} transition={{ duration:1, repeat:Infinity }}>Ingresando…</motion.span> : "Iniciar sesión →"}
-              </MagneticButton>
-            </motion.div>
-
-            <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} transition={{ delay:.7 }} style={{ marginTop:"1.5rem", textAlign:"center", fontSize:"0.8rem", color:"rgba(255,255,255,.35)" }}>
-              <p>¿Sin cuenta? <Link to="/register" style={{ color:"#a3e635", fontWeight:600, textDecoration:"none" }}>Regístrate como ciudadano</Link></p>
-              <p style={{ marginTop:8 }}>¿Eres reciclador? <Link to="/register/reciclador" style={{ color:"#86efac", fontWeight:600, textDecoration:"none" }}>Solicita tu registro</Link></p>
-            </motion.div>
-          </form>
-        </LiquidGlass>
-      </motion.div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <CtaCard iconBg="var(--green-soft)" icon="user" onClick={() => navigate("/register")} top="Regístrate como ciudadano" sub="Recicla, suma puntos y canjea recompensas" />
+          <CtaCard iconBg="var(--orange)" icon="truck" onClick={() => navigate("/register/reciclador")} top="¿Eres reciclador?" sub="Solicita tu registro y empieza a recolectar" />
+        </div>
     </div>
   );
 }
