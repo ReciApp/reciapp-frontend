@@ -1,333 +1,152 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
+import { Icon, PageHead, Avatar } from "../components/ui/Primitivos";
+import { MAT, ESTADOS, ACTIVIDAD } from "../lib/datos";
+import { useAuth } from "../context/AuthContext";
 import { getPendingRecicladores, validarReciclador } from "../api/users";
-import Particles from "../components/ui/Particles";
 
-// ── Aurora orbs ───────────────────────────────────────────────────────────────
-function AuroraOrbs() {
+function Kpi({ icon, color, value, label, delta }) {
   return (
-    <>
-      <div style={{
-        position: "fixed", top: "-10%", left: "-5%", width: 600, height: 600,
-        borderRadius: "50%", background: "rgba(251,191,36,.08)", filter: "blur(80px)",
-        zIndex: 0, pointerEvents: "none",
-      }} className="orb-1" />
-      <div style={{
-        position: "fixed", bottom: "-15%", right: "-10%", width: 700, height: 700,
-        borderRadius: "50%", background: "rgba(132,204,22,.07)", filter: "blur(80px)",
-        zIndex: 0, pointerEvents: "none",
-      }} className="orb-2" />
-      <div style={{
-        position: "fixed", top: "40%", left: "60%", width: 400, height: 400,
-        borderRadius: "50%", background: "rgba(251,191,36,.05)", filter: "blur(70px)",
-        zIndex: 0, pointerEvents: "none",
-      }} className="orb-3" />
-    </>
+    <div style={{ position: "relative", overflow: "hidden", background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, padding: "20px 22px", boxShadow: "0 2px 0 oklch(0.88 0.03 120)" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ width: 44, height: 44, borderRadius: 13, background: color, display: "grid", placeItems: "center" }}><Icon name={icon} size={22} stroke="#fff" /></span>
+      </div>
+      <div style={{ fontFamily: "var(--serif)", fontSize: 38, color: "var(--ink)", lineHeight: 1, marginTop: 14 }}>{value}</div>
+      <div style={{ fontFamily: "var(--sans)", fontWeight: 600, fontSize: 14, color: "var(--ink-soft)", marginTop: 4 }}>{label}</div>
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 5, marginTop: 10, fontFamily: "var(--sans)", fontWeight: 700, fontSize: 12, color: "var(--green-deep)" }}><Icon name="arrowRight" size={13} stroke="var(--green-deep)" style={{ transform: "rotate(-45deg)" }} />{delta}</div>
+    </div>
   );
 }
 
-// ── Stat card ─────────────────────────────────────────────────────────────────
-function StatCard({ icon, label, value, color, delay }) {
+function RecicladorPendiente({ r, onResolve }) {
+  const [estado, setEstado] = useState("idle");
+  const nombre = r.nombre || r.name || r.correo || "Reciclador";
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ type: "spring", stiffness: 260, damping: 22, delay: delay || 0 }}
-      style={{
-        background: "rgba(255,255,255,.06)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        border: "1px solid rgba(255,255,255,.1)",
-        borderRadius: "var(--radius)",
-        padding: "1.5rem",
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
-      }}
-    >
-      <span style={{ fontSize: "2rem" }}>{icon}</span>
-      <span style={{
-        fontFamily: "var(--font-body)", fontSize: "0.78rem",
-        color: "rgba(255,255,255,.5)", letterSpacing: "0.04em", textTransform: "uppercase",
-      }}>
-        {label}
-      </span>
-      <span style={{
-        fontFamily: "var(--font-display)", fontSize: "2.2rem", fontWeight: 800,
-        color: color || "white", lineHeight: 1,
-      }}>
-        {value}
-      </span>
-    </motion.div>
-  );
-}
-
-// ── Reciclador row ────────────────────────────────────────────────────────────
-function RecicladorRow({ reciclador, onAprobar, onRechazar, loadingId }) {
-  const inicial = (reciclador.nombre || "?").charAt(0).toUpperCase();
-  const busy = loadingId === reciclador.id;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, x: -20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: 20, scale: 0.96 }}
-      transition={{ type: "spring", stiffness: 280, damping: 24 }}
-      style={{
-        background: "rgba(255,255,255,.06)",
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        border: "1px solid rgba(255,255,255,.1)",
-        borderRadius: "var(--radius)",
-        padding: "1.25rem 1.5rem",
-        display: "flex",
-        alignItems: "center",
-        gap: "1rem",
-      }}
-    >
-      {/* Avatar */}
-      <div style={{
-        width: 44, height: 44, borderRadius: "50%", flexShrink: 0,
-        background: "linear-gradient(135deg,rgba(251,191,36,.5),rgba(132,204,22,.4))",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "1.2rem",
-        color: "white", border: "1.5px solid rgba(251,191,36,.3)",
-      }}>
-        {inicial}
+    <div style={{ background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, padding: "18px 20px", boxShadow: "0 2px 0 oklch(0.88 0.03 120)" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ display: "flex", gap: 13, minWidth: 0 }}>
+          <Avatar name={nombre} size={48} bg="var(--orange)" />
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 20, color: "var(--ink)" }}>{nombre}</span>
+              <span style={{ fontFamily: "var(--sans)", fontSize: 12, fontWeight: 700, color: "var(--ink-soft)", background: "var(--cream)", border: "1px solid var(--line)", borderRadius: 999, padding: "2px 9px" }}>#{r.id}</span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "5px 16px", marginTop: 8, fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)" }}>
+              {r.correo && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="shield" size={14} stroke="var(--ink-soft)" />{r.correo}</span>}
+              {r.celular && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="phone" size={14} stroke="var(--ink-soft)" />{r.celular}</span>}
+              {r.zona_cobertura && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="pin" size={14} stroke="var(--ink-soft)" />{r.zona_cobertura}</span>}
+              {r.disponibilidad_horaria && <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="clock" size={14} stroke="var(--ink-soft)" />{r.disponibilidad_horaria}</span>}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{
-          fontFamily: "var(--font-display)", fontWeight: 700,
-          color: "white", fontSize: "0.95rem",
-        }}>
-          {reciclador.nombre}
-        </p>
-        <p style={{
-          color: "rgba(255,255,255,.45)", fontSize: "0.8rem", marginTop: "0.15rem",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        }}>
-          {reciclador.email || reciclador.correo}
-        </p>
-        {reciclador.zona_cobertura && (
-          <p style={{ color: "rgba(163,230,53,.7)", fontSize: "0.75rem", marginTop: "0.1rem" }}>
-            📍 {reciclador.zona_cobertura}
-          </p>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div style={{ display: "flex", gap: "0.5rem", flexShrink: 0 }}>
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => onAprobar(reciclador.id)}
-          disabled={busy}
-          className="btn-lime"
-          style={{ padding: "0.45rem 1rem", fontSize: "0.82rem", opacity: busy ? 0.5 : 1 }}
-        >
-          {busy ? "..." : "✓ Aprobar"}
-        </motion.button>
-        <motion.button
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
-          onClick={() => onRechazar(reciclador.id)}
-          disabled={busy}
-          style={{
-            fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.82rem",
-            padding: "0.45rem 1rem", borderRadius: "var(--radius-pill)",
-            background: "rgba(239,68,68,.12)", border: "1.5px solid rgba(239,68,68,.3)",
-            color: "#f87171", cursor: "pointer", opacity: busy ? 0.5 : 1, transition: "all .2s",
-          }}
-        >
-          ✕ Rechazar
-        </motion.button>
-      </div>
-    </motion.div>
+      {estado === "idle" ? (
+        <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+          <button type="button" onClick={() => { setEstado("aprobado"); setTimeout(() => onResolve(r.id, "aprobado"), 700); }}
+            style={{ flex: 1, fontFamily: "var(--serif)", fontSize: 17, color: "#fff", background: "var(--green)", border: "none", borderRadius: 999, padding: 11, cursor: "pointer", boxShadow: "0 4px 0 var(--green-deep)", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8 }}
+            onMouseDown={(e) => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = "0 2px 0 var(--green-deep)"; }}
+            onMouseUp={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 0 var(--green-deep)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 4px 0 var(--green-deep)"; }}>
+            <Icon name="check" size={19} stroke="#fff" />Aprobar
+          </button>
+          <button type="button" onClick={() => { setEstado("rechazado"); setTimeout(() => onResolve(r.id, "rechazado"), 700); }}
+            style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 15, color: "var(--pink)", background: "var(--cream)", border: "1.5px solid var(--line)", borderRadius: 999, padding: "11px 22px", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 7 }}>
+            <Icon name="x" size={17} stroke="var(--pink)" />Rechazar
+          </button>
+        </div>
+      ) : (
+        <div className="screen" style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--sans)", fontWeight: 600, fontSize: 14, color: estado === "aprobado" ? "var(--green-deep)" : "var(--pink)" }}>
+          <Icon name={estado === "aprobado" ? "check" : "x"} size={17} stroke={estado === "aprobado" ? "var(--green-deep)" : "var(--pink)"} />
+          {estado === "aprobado" ? "Reciclador aprobado." : "Solicitud rechazada."}
+        </div>
+      )}
+    </div>
   );
 }
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
-function Toast({ msg, type }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 24, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 16, scale: 0.95 }}
-      style={{
-        position: "fixed", bottom: "2rem", left: "50%", transform: "translateX(-50%)",
-        background: type === "success" ? "rgba(132,204,22,.15)" : "rgba(239,68,68,.15)",
-        backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
-        border: `1.5px solid ${type === "success" ? "rgba(132,204,22,.4)" : "rgba(239,68,68,.4)"}`,
-        borderRadius: "var(--radius-pill)", padding: "0.75rem 1.5rem",
-        color: "white", fontFamily: "var(--font-display)", fontWeight: 600,
-        fontSize: "0.9rem", zIndex: 9999, whiteSpace: "nowrap",
-        boxShadow: type === "success"
-          ? "0 0 24px rgba(132,204,22,.25)"
-          : "0 0 24px rgba(239,68,68,.25)",
-      }}
-    >
-      {msg}
-    </motion.div>
-  );
-}
+const DISTRIBUCION = [["plastico", 34], ["papel", 26], ["carton", 18], ["vidrio", 12], ["metal", 7], ["organico", 3]];
 
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function AdminHome() {
-  const [recicladores, setRecicladores] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingId, setLoadingId] = useState(null);
-  const [toast, setToast] = useState(null);
+  const { user, logout } = useAuth();
+  const userName = user?.nombre || user?.name || "admin";
 
-  const showToast = useCallback((msg, type = "success") => {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3200);
-  }, []);
+  const [pend, setPend] = useState([]);
 
   useEffect(() => {
     getPendingRecicladores()
-      .then(setRecicladores)
-      .catch(() => showToast("Error al cargar recicladores", "error"))
-      .finally(() => setLoading(false));
-  }, [showToast]);
+      .then((data) => setPend(data || []))
+      .catch(() => setPend([]));
+  }, []);
 
-  const handleAprobar = async (id) => {
-    setLoadingId(id);
-    try {
-      await validarReciclador(id, "aprobado");
-      setRecicladores((prev) => prev.filter((r) => r.id !== id));
-      showToast("✓ Reciclador aprobado correctamente", "success");
-    } catch {
-      showToast("Error al aprobar el reciclador", "error");
-    } finally {
-      setLoadingId(null);
-    }
-  };
-
-  const handleRechazar = async (id) => {
-    setLoadingId(id);
-    try {
-      await validarReciclador(id, "rechazado");
-      setRecicladores((prev) => prev.filter((r) => r.id !== id));
-      showToast("Reciclador rechazado", "error");
-    } catch {
-      showToast("Error al rechazar el reciclador", "error");
-    } finally {
-      setLoadingId(null);
-    }
+  const resolver = async (id, accion) => {
+    try { await validarReciclador(id, accion); } catch {}
+    setPend((p) => p.filter((x) => x.id !== id));
   };
 
   return (
-    <div style={{ minHeight: "100dvh", background: "#0b1f12", color: "white", position: "relative" }}>
-      <AuroraOrbs />
-      <div style={{ position: "fixed", inset: 0, zIndex: 0, pointerEvents: "none" }}>
-        <Particles count={40} color="251,191,36" opacity={0.3} />
-      </div>
+    <div className="paper-tex" style={{ minHeight: "100vh", background: "var(--cream)" }}>
+      <Navbar user={userName} role="admin" onLogout={logout} />
+      <main className="screen" style={{ maxWidth: 1120, width: "100%", margin: "0 auto", padding: "clamp(26px, 4vw, 44px) clamp(16px, 4vw, 36px) 60px" }}>
+        <PageHead eyebrow="Panel administrador" title={<span>Centro de <span style={{ color: "var(--green)", fontStyle: "italic" }}>control</span></span>} sub="Métricas globales y validación de recicladores." />
 
-      <div style={{ position: "relative", zIndex: 1 }}>
-        <Navbar />
-        <main style={{ maxWidth: 900, margin: "0 auto", padding: "2.5rem 1.25rem 5rem" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", gap: 16, marginBottom: 26 }}>
+          <Kpi icon="user" color="var(--green)" value="1,284" label="Ciudadanos" delta="+48 esta semana" />
+          <Kpi icon="truck" color="var(--orange)" value="96" label="Recicladores" delta="+6 esta semana" />
+          <Kpi icon="recycle" color="var(--blue)" value="3,712" label="Recolecciones" delta="+214 este mes" />
+          <Kpi icon="weight" color="var(--green-deep)" value="8.4 t" label="Material reciclado" delta="+0.6 t este mes" />
+        </div>
 
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 240, damping: 22 }}
-            style={{ marginBottom: "2.5rem" }}
-          >
-            <h1 style={{
-              fontFamily: "var(--font-display)",
-              fontSize: "clamp(1.8rem,4vw,2.6rem)",
-              fontWeight: 800, color: "white", letterSpacing: "-0.03em", marginBottom: "0.4rem",
-            }}>
-              Panel de administración
-            </h1>
-            <p style={{ color: "rgba(255,255,255,.45)", fontSize: "0.95rem", fontFamily: "var(--font-body)" }}>
-              Gestiona los recicladores pendientes de validación
-            </p>
-          </motion.div>
-
-          {/* Stats grid */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))",
-            gap: "1rem", marginBottom: "2.5rem",
-          }}>
-            <StatCard icon="⏳" label="Pendientes" value={loading ? "—" : recicladores.length} color="#fbbf24" delay={0.05} />
-            <StatCard icon="✅" label="Sistema" value="Activo" color="#a3e635" delay={0.1} />
-            <StatCard icon="🌱" label="Plataforma" value="OK" color="#4ade80" delay={0.15} />
-          </div>
-
-          {/* Lista */}
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.25rem" }}>
-              <h2 style={{
-                fontFamily: "var(--font-display)", fontWeight: 700,
-                fontSize: "1.2rem", color: "white",
-              }}>
-                Recicladores pendientes
-              </h2>
-              {recicladores.length > 0 && (
-                <span style={{
-                  background: "rgba(251,191,36,.2)", border: "1px solid rgba(251,191,36,.4)",
-                  color: "#fbbf24", fontFamily: "var(--font-display)", fontWeight: 800,
-                  fontSize: "0.78rem", padding: "0.2rem 0.65rem", borderRadius: "var(--radius-pill)",
-                }}>
-                  {recicladores.length}
-                </span>
-              )}
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.4fr) minmax(0, 1fr)", gap: 22, alignItems: "start" }} className="admin-grid">
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+              <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, color: "var(--ink)", margin: 0 }}>Recicladores por validar</h2>
+              <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 13, color: "#fff", background: "var(--orange)", borderRadius: 999, padding: "2px 11px" }}>{pend.length}</span>
             </div>
-
-            {loading ? (
-              <div style={{ textAlign: "center", padding: "4rem 0", color: "rgba(255,255,255,.4)" }}>
-                <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>⏳</div>
-                <p>Cargando...</p>
+            {pend.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "50px 20px", background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, color: "var(--ink-soft)" }}>
+                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--cream)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", margin: "0 auto 12px" }}><Icon name="check" size={26} stroke="var(--green)" /></div>
+                <p style={{ fontFamily: "var(--sans)", fontSize: 15 }}>No hay solicitudes de validación pendientes.</p>
               </div>
-            ) : recicladores.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
-                style={{
-                  background: "rgba(255,255,255,.04)", border: "1px solid rgba(255,255,255,.08)",
-                  borderRadius: "var(--radius)", padding: "4rem 2rem", textAlign: "center",
-                }}
-              >
-                <div style={{ fontSize: "3.5rem", marginBottom: "1rem" }}>📭</div>
-                <p style={{
-                  fontFamily: "var(--font-display)", fontWeight: 700,
-                  color: "rgba(255,255,255,.6)", fontSize: "1.1rem",
-                }}>
-                  Sin recicladores pendientes
-                </p>
-                <p style={{ color: "rgba(255,255,255,.3)", fontSize: "0.85rem", marginTop: "0.5rem" }}>
-                  Todos han sido procesados
-                </p>
-              </motion.div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-                <AnimatePresence>
-                  {recicladores.map((r) => (
-                    <RecicladorRow
-                      key={r.id}
-                      reciclador={r}
-                      onAprobar={handleAprobar}
-                      onRechazar={handleRechazar}
-                      loadingId={loadingId}
-                    />
-                  ))}
-                </AnimatePresence>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {pend.map((r) => <RecicladorPendiente key={r.id} r={r} onResolve={resolver} />)}
               </div>
             )}
-          </motion.div>
-        </main>
-      </div>
+          </div>
 
-      {/* Toast */}
-      <AnimatePresence>
-        {toast && <Toast key="toast" msg={toast.msg} type={toast.type} />}
-      </AnimatePresence>
+          <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+            <div>
+              <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, color: "var(--ink)", margin: "0 0 14px" }}>Actividad reciente</h2>
+              <div style={{ background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, padding: "8px 18px", boxShadow: "0 2px 0 oklch(0.88 0.03 120)" }}>
+                {ACTIVIDAD.map((a, i) => {
+                  const e = ESTADOS[a.estado];
+                  return (
+                    <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 0", borderBottom: i < ACTIVIDAD.length - 1 ? "1px solid var(--line)" : "none" }}>
+                      <span style={{ width: 34, height: 34, borderRadius: 10, background: e.color, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={e.icon} size={17} stroke={e.fg} /></span>
+                      <span style={{ flex: 1, fontFamily: "var(--sans)", fontSize: 14, color: "var(--ink)" }}>{a.txt}</span>
+                      <span style={{ fontFamily: "var(--sans)", fontSize: 12, color: "var(--ink-soft)", whiteSpace: "nowrap" }}>{a.t}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, color: "var(--ink)", margin: "0 0 14px" }}>Material por tipo</h2>
+              <div style={{ background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, padding: "18px 20px", boxShadow: "0 2px 0 oklch(0.88 0.03 120)", display: "flex", flexDirection: "column", gap: 12 }}>
+                {DISTRIBUCION.map(([t, pct]) => (
+                  <div key={t} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <span style={{ width: 70, fontFamily: "var(--sans)", fontWeight: 600, fontSize: 13, color: "var(--ink)" }}>{MAT[t]?.label}</span>
+                    <span style={{ flex: 1, height: 10, borderRadius: 999, background: "oklch(0.9 0.02 120)", overflow: "hidden" }}><span style={{ display: "block", width: pct + "%", height: "100%", borderRadius: 999, background: MAT[t]?.color }} /></span>
+                    <span style={{ width: 38, textAlign: "right", fontFamily: "var(--sans)", fontWeight: 700, fontSize: 13, color: "var(--ink-soft)" }}>{pct}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
     </div>
   );
 }

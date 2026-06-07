@@ -8,7 +8,6 @@ import markerIconPng from "leaflet/dist/images/marker-icon.png";
 import markerShadow  from "leaflet/dist/images/marker-shadow.png";
 import { useGeolocacion } from "../../hooks/useGeolocacion";
 
-// Fix Leaflet icons en Vite — se ejecuta una sola vez al importar el módulo
 if (!L.Icon.Default.prototype._iconFixed) {
   delete L.Icon.Default.prototype._getIconUrl;
   L.Icon.Default.mergeOptions({
@@ -19,7 +18,23 @@ if (!L.Icon.Default.prototype._iconFixed) {
   L.Icon.Default.prototype._iconFixed = true;
 }
 
-// Centra el mapa suavemente cuando cambia la posición del reciclador
+// Iconos creados una sola vez fuera del componente para evitar recrearlos en cada render
+const ICONOS = {
+  reciclador: L.divIcon({
+    className: "",
+    html: '<div style="font-size:26px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))">🚛</div>',
+    iconSize: [30, 30], iconAnchor: [15, 28],
+  }),
+  destino: L.divIcon({
+    className: "",
+    html: '<div style="font-size:26px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.4))">📍</div>',
+    iconSize: [30, 30], iconAnchor: [15, 28],
+  }),
+};
+
+// Centro por defecto: Puente Piedra, Lima
+const PUENTE_PIEDRA = [-11.87, -77.07];
+
 function MapUpdater({ center }) {
   const map = useMap();
   useEffect(() => {
@@ -28,60 +43,42 @@ function MapUpdater({ center }) {
   return null;
 }
 
-const PUENTE_PIEDRA = [-11.87, -77.07];
-
-function crearIconos() {
-  return {
-    reciclador: L.divIcon({
-      className: "",
-      html: '<div style="font-size:26px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))">🚛</div>',
-      iconSize: [30, 30], iconAnchor: [15, 28],
-    }),
-    destino: L.divIcon({
-      className: "",
-      html: '<div style="font-size:26px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))">📍</div>',
-      iconSize: [30, 30], iconAnchor: [15, 28],
-    }),
-  };
-}
-
 /**
  * Mapa de navegación para el reciclador.
  *
  * Props:
- *  - solicitud  : objeto solicitud con latitud/longitud del destino
- *  - wsRef      : ref del WebSocket (de useWebSocket en el padre)
- *  - rutaData   : { ruta: [[lat,lon],...], distanciaKm, etaMin } o null
+ *  - solicitud  : objeto solicitud del backend con `.id`, `.latitud`, `.longitud`
+ *  - wsRef      : ref al WebSocket (de useWebSocket en RecyclerHome)
+ *  - rutaData   : { ruta: [[lat,lon],...], distanciaKm, etaMin } enviado por el backend
+ *                 tras calcular A* — null mientras no llegue la primera ruta
  */
 export default function MapaNavegacion({ solicitud, wsRef, rutaData }) {
   const [posActual, setPosActual] = useState(null);
-  const iconos = crearIconos();
 
   const destino =
-    solicitud.latitud && solicitud.longitud
+    solicitud?.latitud && solicitud?.longitud
       ? [solicitud.latitud, solicitud.longitud]
       : null;
 
-  // Recibe GPS y lo envía al backend por WebSocket
+  // Recibe posición GPS y la envía al backend para que recalcule la ruta con A*
   const handlePosicion = useCallback(
     ({ lat, lon }) => {
       setPosActual([lat, lon]);
       const ws = wsRef?.current;
-      if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(
-          JSON.stringify({
-            tipo:        "ubicacion_reciclador",
-            solicitud_id: solicitud.id,
-            lat,
-            lon,
-          })
-        );
+      if (ws?.readyState === WebSocket.OPEN && solicitud?.id) {
+        ws.send(JSON.stringify({
+          tipo:         "ubicacion_reciclador",
+          solicitud_id: solicitud.id,
+          lat,
+          lon,
+        }));
       }
     },
-    [wsRef, solicitud.id]
+    [wsRef, solicitud?.id]
   );
 
-  useGeolocacion(handlePosicion, true);
+  // Solo activa el GPS cuando hay una solicitud activa
+  useGeolocacion(handlePosicion, !!solicitud);
 
   const ruta        = rutaData?.ruta        ?? [];
   const distanciaKm = rutaData?.distanciaKm ?? null;
@@ -89,19 +86,33 @@ export default function MapaNavegacion({ solicitud, wsRef, rutaData }) {
   const centro      = posActual || destino || PUENTE_PIEDRA;
 
   return (
-    <div className="mt-3 rounded-xl overflow-hidden border border-purple-200 shadow-sm">
-      {/* Barra de info */}
-      <div className="bg-purple-50 px-4 py-2.5 flex items-center justify-between border-b border-purple-100">
-        <span className="text-sm font-semibold text-purple-800">
-          🗺 Navegación en tiempo real
+    <div style={{ borderRadius: 16, overflow: "hidden", border: "1.5px solid var(--green-soft)" }}>
+      {/* Barra de estado */}
+      <div style={{
+        background: "color-mix(in oklch, var(--green) 10%, var(--cream-card))",
+        padding: "9px 14px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        borderBottom: "1px solid var(--green-soft)",
+      }}>
+        <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 13, color: "var(--green-deep)", display: "flex", alignItems: "center", gap: 7 }}>
+          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", flexShrink: 0, boxShadow: "0 0 0 3px oklch(0.66 0.15 142 / 0.25)" }} />
+          Navegación en tiempo real
         </span>
-        <div className="flex gap-4 text-xs text-purple-700 font-medium">
-          {distanciaKm !== null && <span>📏 {distanciaKm} km</span>}
-          {etaMin      !== null && <span>⏱ ~{etaMin} min</span>}
+        <div style={{ display: "flex", gap: 16, fontFamily: "var(--sans)", fontWeight: 700, fontSize: 12.5, color: "var(--ink-soft)" }}>
+          {distanciaKm !== null && (
+            <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+              <span style={{ fontSize: 14 }}>📏</span>{distanciaKm} km
+            </span>
+          )}
+          {etaMin !== null && (
+            <span style={{ display: "flex", alignItems: "center", gap: 4, color: "var(--green-deep)" }}>
+              <span style={{ fontSize: 14 }}>⏱</span>~{etaMin} min
+            </span>
+          )}
         </div>
       </div>
 
-      {/* Mapa */}
+      {/* Mapa Leaflet */}
       <div style={{ height: 300 }}>
         <MapContainer
           center={centro}
@@ -115,21 +126,29 @@ export default function MapaNavegacion({ solicitud, wsRef, rutaData }) {
 
           {posActual && <MapUpdater center={posActual} />}
           {posActual && (
-            <Marker position={posActual} icon={iconos.reciclador} title="Tu posición actual" />
+            <Marker position={posActual} icon={ICONOS.reciclador} title="Tu posición actual" />
           )}
           {destino && (
-            <Marker position={destino} icon={iconos.destino} title="Destino del ciudadano" />
+            <Marker position={destino} icon={ICONOS.destino} title="Destino del ciudadano" />
           )}
+          {/* Ruta calculada por A* en el backend */}
           {ruta.length > 1 && (
-            <Polyline positions={ruta} color="#7c3aed" weight={5} opacity={0.85} />
+            <Polyline
+              positions={ruta}
+              pathOptions={{ color: "#3d9149", weight: 5, opacity: 0.88 }}
+            />
           )}
         </MapContainer>
       </div>
 
       {!posActual && (
-        <p className="text-center text-xs text-gray-400 py-2 bg-white">
-          Activando GPS… asegúrate de tener el GPS habilitado.
-        </p>
+        <div style={{
+          textAlign: "center", padding: "7px 14px",
+          background: "var(--cream-card)",
+          fontFamily: "var(--sans)", fontSize: 12.5, color: "var(--ink-soft)",
+        }}>
+          Activando GPS… asegúrate de tener la ubicación habilitada.
+        </div>
       )}
     </div>
   );

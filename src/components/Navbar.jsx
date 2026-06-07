@@ -1,39 +1,63 @@
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import React from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Icon, ReciLogo } from "./ui/Primitivos";
 
-const ROL_HOME = { ciudadano:"/ciudadano", reciclador:"/reciclador", admin:"/admin" };
-const ROL_COLOR = { ciudadano:"#a3e635", reciclador:"#60a5fa", admin:"#f59e0b" };
+const LINKS = {
+  ciudadano: [
+    { path: "/ciudadano", label: "Inicio" },
+    { path: "/ciudadano/solicitudes", label: "Mis solicitudes" },
+    { path: "/perfil", label: "Perfil" },
+  ],
+  reciclador: [
+    { path: "/reciclador", label: "Solicitudes" },
+    { path: "/perfil", label: "Perfil" },
+  ],
+  admin: [{ path: "/admin", label: "Panel" }],
+};
 
-export default function Navbar() {
-  const { user, logout } = useAuth();
+export default function Navbar({ user = "Usuario", role = "ciudadano", onLogout }) {
   const navigate = useNavigate();
-  const handleLogout = () => { logout(); navigate("/login", { replace:true }); };
+  const location = useLocation();
+  const links = LINKS[role] || LINKS.ciudadano;
+  const initial = (user || "U").charAt(0).toUpperCase();
+  const roleLabel = role === "reciclador" ? "Reciclador" : role === "admin" ? "Administrador" : "Ciudadano";
 
   return (
-    <nav className="glass-dark" style={{ position:"sticky", top:0, zIndex:100, borderBottom:"1px solid rgba(255,255,255,0.1)", borderRadius:0 }}>
-      <div style={{ maxWidth:720, margin:"0 auto", padding:"0 1.25rem", height:58, display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-        <Link to={user ? (ROL_HOME[user.rol]||"/") : "/"} style={{ textDecoration:"none", display:"flex", alignItems:"center", gap:10 }}>
-          <div style={{ width:32, height:32, borderRadius:9, background:"linear-gradient(135deg,#a3e635,#84cc16)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, boxShadow:"0 2px 8px rgba(132,204,22,.5),inset 0 1px 0 rgba(255,255,255,.4)", animation:"glow-pulse 3s ease-in-out infinite" }}>♻</div>
-          <span style={{ fontFamily:"var(--font-display)", fontWeight:800, fontSize:"1.05rem", letterSpacing:"-0.03em", color:"white" }}>
-            Reci<span style={{ color:"#a3e635" }}>App</span>
-          </span>
-        </Link>
-        {user && (
-          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-            <Link to="/perfil" style={{ textDecoration:"none", display:"flex", alignItems:"center", gap:8 }}>
-              <div style={{ width:32, height:32, borderRadius:"50%", background:`linear-gradient(135deg,${ROL_COLOR[user.rol]||"#a3e635"},rgba(255,255,255,.2))`, border:"1.5px solid rgba(255,255,255,.25)", display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-display)", fontWeight:700, fontSize:"0.8rem", color:"var(--forest)", boxShadow:"inset 0 1px 0 rgba(255,255,255,.4)" }}>
-                {user.nombre.charAt(0).toUpperCase()}
-              </div>
-              <span style={{ fontFamily:"var(--font-display)", fontWeight:500, fontSize:"0.8125rem", color:"rgba(255,255,255,.85)" }}>{user.nombre.split(" ")[0]}</span>
-            </Link>
-            <button onClick={handleLogout} className="glass" style={{ fontFamily:"var(--font-display)", fontWeight:600, fontSize:"0.75rem", color:"rgba(255,255,255,.7)", border:"1px solid rgba(255,255,255,.18)", borderRadius:"var(--radius-pill)", padding:"5px 14px", cursor:"pointer", background:"rgba(255,255,255,.08)", backdropFilter:"blur(20px)", transition:"all .2s" }}
-              onMouseEnter={e=>{e.target.style.color="white";e.target.style.background="rgba(255,255,255,.16)";}}
-              onMouseLeave={e=>{e.target.style.color="rgba(255,255,255,.7)";e.target.style.background="rgba(255,255,255,.08)";}}>
-              Salir
-            </button>
-          </div>
-        )}
+    <header style={{ background: "var(--green)", boxShadow: "0 2px 0 var(--green-deep)", position: "sticky", top: 0, zIndex: 30 }}>
+      <div style={{ maxWidth: 1120, margin: "0 auto", padding: "12px clamp(16px, 4vw, 36px)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 22 }}>
+          <button type="button" onClick={() => navigate(links[0].path)} style={{ display: "flex", alignItems: "center", gap: 11, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: "var(--green-deep)", display: "grid", placeItems: "center", boxShadow: "0 3px 0 oklch(0.45 0.12 143)" }}><ReciLogo size={25} /></div>
+            <span style={{ fontFamily: "var(--serif)", fontSize: 24, color: "#fff", letterSpacing: 0.3 }}>Reci<span style={{ fontStyle: "italic" }}>App</span></span>
+          </button>
+          <nav style={{ display: "flex", gap: 4 }}>
+            {links.map((l) => {
+              const active = location.pathname === l.path;
+              return (
+                <button key={l.path + l.label} type="button" onClick={() => navigate(l.path)} style={{
+                  fontFamily: "var(--sans)", fontWeight: 600, fontSize: 14.5, cursor: "pointer", border: "none",
+                  background: active ? "oklch(1 0 0 / 0.16)" : "transparent", color: "#fff",
+                  padding: "8px 14px", borderRadius: 999, transition: "background .15s",
+                }}>{l.label}</button>
+              );
+            })}
+          </nav>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button type="button" onClick={() => navigate("/perfil")} style={{ display: "flex", alignItems: "center", gap: 9, background: "none", border: "none", cursor: "pointer", padding: 0 }}>
+            <span style={{ width: 36, height: 36, borderRadius: "50%", background: "var(--cream)", color: "var(--green-deep)", display: "grid", placeItems: "center", fontFamily: "var(--serif)", fontSize: 17 }}>{initial}</span>
+            <span style={{ textAlign: "left", lineHeight: 1.1 }}>
+              <span style={{ display: "block", fontFamily: "var(--sans)", fontWeight: 700, fontSize: 14, color: "#fff" }}>{user}</span>
+              <span style={{ display: "block", fontFamily: "var(--sans)", fontSize: 11.5, color: "oklch(0.92 0.05 130)" }}>{roleLabel}</span>
+            </span>
+          </button>
+          <button type="button" onClick={onLogout} title="Salir" style={{
+            fontFamily: "var(--sans)", fontWeight: 600, fontSize: 14, color: "var(--green-deep)", background: "var(--cream)",
+            border: "none", borderRadius: 999, padding: "9px 16px", cursor: "pointer", boxShadow: "0 3px 0 oklch(0.78 0.04 100)",
+            display: "inline-flex", alignItems: "center", gap: 7,
+          }}><Icon name="logout" size={16} stroke="var(--green-deep)" />Salir</button>
+        </div>
       </div>
-    </nav>
+    </header>
   );
 }
