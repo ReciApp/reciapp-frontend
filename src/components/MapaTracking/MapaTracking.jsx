@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { MapContainer, TileLayer, Marker, useMap } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
@@ -62,6 +62,7 @@ export default function MapaTracking() {
 
   const [solicitud, setSolicitud] = useState(null);
   const [posRec, setPosRec]       = useState(null);
+  const [ruta, setRuta]           = useState([]);
   const [etaMin, setEtaMin]       = useState(null);
   const [loading, setLoading]     = useState(true);
 
@@ -80,12 +81,23 @@ export default function MapaTracking() {
       setPosRec([msg.lat, msg.lon]);
       if (msg.eta_min !== undefined) setEtaMin(msg.eta_min);
     }
+    if (msg.tipo === "ruta_actualizada" && String(msg.solicitud_id) === String(id)) {
+      setRuta(msg.ruta || []);
+      if (msg.eta_min !== undefined) setEtaMin(msg.eta_min);
+    }
     if (msg.tipo === "estado_solicitud" && String(msg.solicitud_id) === String(id)) {
       setSolicitud((prev) => prev ? { ...prev, estado: msg.estado } : prev);
     }
   }, [id]);
 
-  const wsRef = useWebSocket(handleWsMessage, !loading);
+  // Al conectar (o reconectar), pedir la última ubicación conocida del
+  // reciclador — sin esto solo se ven los updates emitidos DESPUÉS de entrar
+  // a esta página, y el ciudadano queda en "Esperando ubicación…"
+  const handleWsOpen = useCallback((ws) => {
+    ws.send(JSON.stringify({ tipo: "seguir_solicitud", solicitud_id: Number(id) }));
+  }, [id]);
+
+  const wsRef = useWebSocket(handleWsMessage, !loading, handleWsOpen);
 
   const s = solicitud || {};
   const tipos  = s.tipo_residuo ? [s.tipo_residuo] : (s.tipos || []);
@@ -129,6 +141,13 @@ export default function MapaTracking() {
               {posRec && <MapUpdater center={posRec} />}
               {posRec && <Marker position={posRec} icon={ICONOS.reciclador} title="Reciclador" />}
               {destino && <Marker position={destino} icon={ICONOS.destino} title="Tu punto de recolección" />}
+              {/* Ruta del reciclador hacia tu casa, calculada por el backend */}
+              {ruta.length > 1 && (
+                <Polyline
+                  positions={ruta}
+                  pathOptions={{ color: "#3d9149", weight: 5, opacity: 0.88 }}
+                />
+              )}
             </MapContainer>
             {!posRec && (
               <div style={{ textAlign: "center", padding: "8px 16px", background: "var(--cream-card)", fontFamily: "var(--sans)", fontSize: 12.5, color: "var(--ink-soft)" }}>
