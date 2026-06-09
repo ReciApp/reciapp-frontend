@@ -34,7 +34,11 @@ export default function NuevaSolicitudModal({ open, onClose, onSubmit }) {
   }, [open]);
   if (!open) return null;
 
-  const puedeSeguir = paso === 0 ? data.tipos.length > 0 : paso === 3 ? data.direccion.trim().length > 3 : true;
+  const puedeSeguir = paso === 0
+    ? data.tipos.length > 0
+    : paso === 3
+      ? data.direccion.trim().length > 3 && data.lat !== null && data.lon !== null
+      : true;
 
   const next = async () => {
     if (paso < 3) { setPaso(paso + 1); return; }

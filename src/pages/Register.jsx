@@ -1,8 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Field, EyeToggle, PrimaryButton, SuccessBox, Icon } from "../components/ui/Primitivos";
+import { registerCiudadano, registerReciclador } from "../api/auth";
 
-export default function Register({ tipo = "ciudadano", onSubmit }) {
+export default function Register({ tipo = "ciudadano" }) {
   const navigate = useNavigate();
   const esReciclador = tipo === "reciclador";
   const [f, setF] = useState({ nombre: "", email: "", dni: "", celular: "", pass: "", confirm: "", zona: "", disp: "" });
@@ -31,13 +32,23 @@ export default function Register({ tipo = "ciudadano", onSubmit }) {
 
     setStatus("loading");
     try {
-      // 🔌 BACKEND: reemplaza por tu POST de registro (Axios).
-      if (onSubmit) await onSubmit(f, tipo);
-      else await new Promise((r) => setTimeout(r, 1200));
+      const payload = {
+        nombre: f.nombre.trim(),
+        correo: f.email.trim(),
+        dni: f.dni,
+        celular: f.celular,
+        contrasena: f.pass,
+      };
+      if (esReciclador) {
+        await registerReciclador({ ...payload, zona_cobertura: f.zona.trim(), disponibilidad_horaria: f.disp.trim() });
+      } else {
+        await registerCiudadano(payload);
+      }
       setStatus("done");
-    } catch {
+    } catch (err) {
       setStatus("idle");
-      setErrors({ email: "No se pudo completar el registro." });
+      const detail = err.response?.data?.detail;
+      setErrors({ email: typeof detail === "string" ? detail : "No se pudo completar el registro." });
     }
   };
 
