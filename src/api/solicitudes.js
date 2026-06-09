@@ -6,6 +6,12 @@ export const crearSolicitud = (data) =>
 export const listarSolicitudes = () =>
   client.get("/api/solicitudes").then((r) => r.data);
 
+export const listarDisponibles = () =>
+  client.get("/api/solicitudes/disponibles").then((r) => r.data);
+
+export const tomarSolicitud = (id) =>
+  client.put(`/api/solicitudes/${id}/tomar`).then((r) => r.data);
+
 export const obtenerSolicitud = (id) =>
   client.get(`/api/solicitudes/${id}`).then((r) => r.data);
 

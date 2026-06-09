@@ -2,11 +2,12 @@ import React, { useState, useEffect, useCallback } from "react";
 import Navbar from "../components/Navbar";
 import { Icon, PageHead, Avatar, GhostButton } from "../components/ui/Primitivos";
 import TarjetaSolicitudEntrante from "../components/PanelReciclador/TarjetaSolicitudEntrante";
+import TarjetaSolicitudDisponible from "../components/PanelReciclador/TarjetaSolicitudDisponible";
 import FormularioEvidencia from "../components/PanelReciclador/FormularioEvidencia";
 import MapaNavegacion from "../components/MapaNavegacion/MapaNavegacion";
 import { useAuth } from "../context/AuthContext";
 import { useWebSocket } from "../hooks/useWebSocket";
-import { listarSolicitudes, aceptarSolicitud, rechazarSolicitud } from "../api/solicitudes";
+import { listarSolicitudes, listarDisponibles, aceptarSolicitud, rechazarSolicitud, tomarSolicitud } from "../api/solicitudes";
 
 const normalizeEntrante = (s) => ({
   id: s.id,
@@ -28,6 +29,7 @@ export default function RecyclerHome() {
   const userName = user?.nombre || user?.name || "reciclador";
 
   const [disponible, setDisponible] = useState(true);
+  const [disponibles, setDisponibles] = useState([]);
   const [entrantes, setEntrantes] = useState([]);
   const [enCamino, setEnCamino] = useState([]);
   const [activaIdx, setActivaIdx] = useState(0);
@@ -48,6 +50,10 @@ export default function RecyclerHome() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    listarDisponibles()
+      .then((data) => setDisponibles((data || []).map(normalizeEntrante)))
+      .catch(() => {});
   }, []);
 
   const handleWsMessage = useCallback((msg) => {
@@ -61,10 +67,37 @@ export default function RecyclerHome() {
         prev.map((s) => s.id === solicitud_id ? { ...s, eta: `${eta_min} min` } : s)
       );
     }
+    if (msg.tipo === "solicitud_disponible") {
+      setDisponibles((prev) =>
+        prev.some((s) => s.id === msg.solicitud_id)
+          ? prev
+          : [normalizeEntrante({ ...msg, id: msg.solicitud_id }), ...prev]
+      );
+    }
+    if (msg.tipo === "solicitud_no_disponible") {
+      setDisponibles((prev) => prev.filter((s) => s.id !== msg.solicitud_id));
+    }
   }, []);
 
   // El WebSocket arranca solo cuando la carga inicial termina
   const wsRef = useWebSocket(handleWsMessage, !loading);
+
+  const tomar = async (s) => {
+    try {
+      const actualizada = await tomarSolicitud(s.id);
+      setDisponibles((d) => d.filter((x) => x.id !== s.id));
+      setEnCamino((prev) => {
+        const next = [...prev, { ...normalizeEntrante(actualizada), eta: "Calculando…" }];
+        setActivaIdx(next.length - 1);
+        return next;
+      });
+      return true;
+    } catch (err) {
+      // 409: alguien más la tomó primero — la quitamos de la lista igual
+      if (err.response?.status === 409) setDisponibles((d) => d.filter((x) => x.id !== s.id));
+      return false;
+    }
+  };
 
   const aceptar = async (s) => {
     try { await aceptarSolicitud(s.id); } catch {}
@@ -163,25 +196,41 @@ export default function RecyclerHome() {
             <FormularioEvidencia solicitudId={activa?.id ?? null} onComplete={() => {}} />
           </div>
 
-          {/* columna der: solicitudes entrantes */}
-          <div>
-            <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, color: "var(--ink)", margin: "0 0 12px", display: "flex", alignItems: "center", gap: 10 }}>
-              <Icon name="bell" size={22} stroke="var(--orange)" />Solicitudes entrantes
-              <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 13, color: "#fff", background: "var(--orange)", borderRadius: 999, padding: "2px 10px" }}>{entrantes.length}</span>
-            </h2>
-            {!disponible ? (
-              <div style={{ textAlign: "center", padding: "50px 20px", background: "var(--cream-card)", border: "1.5px dashed var(--line)", borderRadius: 20, color: "var(--ink-soft)" }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--cream)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", margin: "0 auto 12px" }}><Icon name="power" size={26} stroke="var(--ink-soft)" /></div>
-                <p style={{ fontFamily: "var(--sans)", fontSize: 15 }}>Estás <strong>no disponible</strong>.<br />Actívate para recibir solicitudes.</p>
-              </div>
-            ) : entrantes.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "50px 20px", background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, color: "var(--ink-soft)" }}>
-                <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--cream)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", margin: "0 auto 12px" }}><Icon name="check" size={26} stroke="var(--green)" /></div>
-                <p style={{ fontFamily: "var(--sans)", fontSize: 15 }}>¡Todo al día! No hay solicitudes nuevas.</p>
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {entrantes.map((s) => <TarjetaSolicitudEntrante key={s.id} s={s} onAceptar={aceptar} onRechazar={rechazar} />)}
+          {/* columna der: solicitudes disponibles para tomar + asignadas automáticamente */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+            <div>
+              <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, color: "var(--ink)", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 10 }}>
+                <Icon name="clipboard" size={22} stroke="var(--orange)" />Solicitudes disponibles
+                <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 13, color: "#fff", background: "var(--orange)", borderRadius: 999, padding: "2px 10px" }}>{disponibles.length}</span>
+              </h2>
+              <p style={{ fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)", margin: "0 0 12px" }}>Elige la que más te convenga — al tomarla, empieza tu ruta.</p>
+              {!disponible ? (
+                <div style={{ textAlign: "center", padding: "50px 20px", background: "var(--cream-card)", border: "1.5px dashed var(--line)", borderRadius: 20, color: "var(--ink-soft)" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--cream)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", margin: "0 auto 12px" }}><Icon name="power" size={26} stroke="var(--ink-soft)" /></div>
+                  <p style={{ fontFamily: "var(--sans)", fontSize: 15 }}>Estás <strong>no disponible</strong>.<br />Actívate para ver solicitudes.</p>
+                </div>
+              ) : disponibles.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "50px 20px", background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20, color: "var(--ink-soft)" }}>
+                  <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--cream)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", margin: "0 auto 12px" }}><Icon name="check" size={26} stroke="var(--green)" /></div>
+                  <p style={{ fontFamily: "var(--sans)", fontSize: 15 }}>No hay solicitudes disponibles por ahora.</p>
+                </div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {disponibles.map((s) => <TarjetaSolicitudDisponible key={s.id} s={s} onTomar={tomar} />)}
+                </div>
+              )}
+            </div>
+
+            {entrantes.length > 0 && (
+              <div>
+                <h2 style={{ fontFamily: "var(--serif)", fontSize: 24, color: "var(--ink)", margin: "0 0 4px", display: "flex", alignItems: "center", gap: 10 }}>
+                  <Icon name="bell" size={22} stroke="var(--orange)" />Asignadas para ti
+                  <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 13, color: "#fff", background: "var(--orange)", borderRadius: 999, padding: "2px 10px" }}>{entrantes.length}</span>
+                </h2>
+                <p style={{ fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)", margin: "0 0 12px" }}>Nadie las tomó a tiempo y el sistema te las asignó — acepta o rechaza.</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                  {entrantes.map((s) => <TarjetaSolicitudEntrante key={s.id} s={s} onAceptar={aceptar} onRechazar={rechazar} />)}
+                </div>
               </div>
             )}
           </div>
