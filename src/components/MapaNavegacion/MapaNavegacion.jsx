@@ -80,6 +80,25 @@ export default function MapaNavegacion({ solicitud, wsRef, rutaData }) {
   // Solo activa el GPS cuando hay una solicitud activa
   useGeolocacion(handlePosicion, !!solicitud);
 
+  // Reenvía la última posición cada 10 s aunque no haya movimiento: cubre el
+  // primer fix GPS perdido si el WS aún no estaba abierto y mantiene fresca
+  // la ubicación que ve el ciudadano cuando el reciclador está detenido.
+  useEffect(() => {
+    if (!solicitud?.id || !posActual) return;
+    const intervalo = setInterval(() => {
+      const ws = wsRef?.current;
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          tipo:         "ubicacion_reciclador",
+          solicitud_id: solicitud.id,
+          lat:          posActual[0],
+          lon:          posActual[1],
+        }));
+      }
+    }, 10000);
+    return () => clearInterval(intervalo);
+  }, [solicitud?.id, posActual, wsRef]);
+
   const ruta        = rutaData?.ruta        ?? [];
   const distanciaKm = rutaData?.distanciaKm ?? null;
   const etaMin      = rutaData?.etaMin      ?? null;
