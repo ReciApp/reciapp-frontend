@@ -1,51 +1,31 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 
-const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutos
-
-export default function Temporizador({ fechaAsignacion }) {
-  const calcRestante = () => {
-    if (!fechaAsignacion) return 0;
-    const fin = new Date(fechaAsignacion).getTime() + TIMEOUT_MS;
-    return Math.max(0, fin - Date.now());
-  };
-
-  const [restante, setRestante] = useState(calcRestante);
+export default function Temporizador({ minutos = 5, size = 46, onExpire }) {
+  const total = minutos * 60;
+  const [secs, setSecs] = useState(total);
 
   useEffect(() => {
-    setRestante(calcRestante());
-    if (calcRestante() <= 0) return;
-    const id = setInterval(() => setRestante(calcRestante()), 1000);
-    return () => clearInterval(id);
-  }, [fechaAsignacion]);
+    setSecs(total);
+    const t = setInterval(() => setSecs((s) => {
+      if (s <= 1) { clearInterval(t); onExpire && onExpire(); return 0; }
+      return s - 1;
+    }), 1000);
+    return () => clearInterval(t);
+  }, [minutos]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (restante <= 0) {
-    return (
-      <div>
-        <p className="text-xs font-semibold text-red-500">⏰ Tiempo agotado — reasignando...</p>
-        <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-          <div className="h-1.5 rounded-full bg-red-400 w-0" />
-        </div>
-      </div>
-    );
-  }
-
-  const mins = Math.floor(restante / 60000);
-  const secs = Math.floor((restante % 60000) / 1000);
-  const pct = (restante / TIMEOUT_MS) * 100;
-  const color = pct < 25 ? "bg-red-500" : pct < 55 ? "bg-amber-500" : "bg-emerald-500";
-  const textColor = pct < 25 ? "text-red-600" : pct < 55 ? "text-amber-600" : "text-gray-600";
+  const frac = secs / total;
+  const r = (size - 6) / 2, c = 2 * Math.PI * r;
+  const mm = String(Math.floor(secs / 60)).padStart(1, "0");
+  const ss = String(secs % 60).padStart(2, "0");
+  const col = frac > 0.5 ? "var(--green)" : frac > 0.2 ? "var(--orange)" : "var(--pink)";
 
   return (
-    <div>
-      <p className={`text-xs font-semibold ${textColor}`}>
-        ⏱ {String(mins).padStart(2, "0")}:{String(secs).padStart(2, "0")} para responder
-      </p>
-      <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-        <div
-          className={`h-1.5 rounded-full transition-all duration-1000 ${color}`}
-          style={{ width: `${pct}%` }}
-        />
-      </div>
+    <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--line)" strokeWidth="4" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col} strokeWidth="4" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - frac)} style={{ transition: "stroke-dashoffset 1s linear, stroke .3s" }} />
+      </svg>
+      <span style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontFamily: "var(--sans)", fontWeight: 700, fontSize: size * 0.26, color: col }}>{mm}:{ss}</span>
     </div>
   );
 }

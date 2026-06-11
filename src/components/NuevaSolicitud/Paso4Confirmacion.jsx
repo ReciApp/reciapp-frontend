@@ -1,145 +1,125 @@
-import { useState, useEffect } from "react";
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
+import React, { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-// Fix Leaflet default icon en Vite
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
-import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import markerShadow  from "leaflet/dist/images/marker-shadow.png";
+import { Icon, Field } from "../ui/Primitivos";
+import { MAT, FRANJAS } from "../../lib/datos";
 
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: markerIcon2x,
-  iconUrl: markerIconPng,
-  shadowUrl: markerShadow,
+if (!L.Icon.Default.prototype._iconFixed) {
+  delete L.Icon.Default.prototype._getIconUrl;
+  L.Icon.Default.mergeOptions({
+    iconRetinaUrl: markerIcon2x,
+    iconUrl:       markerIconPng,
+    shadowUrl:     markerShadow,
+  });
+  L.Icon.Default.prototype._iconFixed = true;
+}
+
+const ICONO_RECOJO = L.divIcon({
+  className: "",
+  html: '<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 5px rgba(0,0,0,.4))">📍</div>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 28],
 });
 
-const TIPO_LABEL = {
-  plastico: "Plástico 🧴", papel: "Papel 📄", vidrio: "Vidrio 🍶",
-  metal: "Metal 🔩", organico: "Orgánico 🍃", electronico: "Electrónico 💻",
-};
-const FRANJA_LABEL = { manana: "Mañana 🌅", tarde: "Tarde ☀️", noche: "Noche 🌙" };
-const LIMA = [-12.046, -77.043];
+// Centro por defecto: Puente Piedra, Lima
+const PUENTE_PIEDRA = [-11.87, -77.07];
 
-function ClickHandler({ onPos }) {
-  useMapEvents({ click: (e) => onPos(e.latlng.lat, e.latlng.lng) });
+function MapCenterUpdater({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) map.panTo(center, { animate: true, duration: 0.6 });
+  }, [center, map]);
   return null;
 }
 
-export default function Paso4Confirmacion({ form, onChange, onBack, onSubmit, loading }) {
-  const [error, setError] = useState("");
-  const [geoLoading, setGeoLoading] = useState(false);
-  const pos = form.latitud && form.longitud ? [form.latitud, form.longitud] : null;
+function MapClickHandler({ onMapClick }) {
+  useMapEvents({ click: (e) => onMapClick(e.latlng) });
+  return null;
+}
 
-  const usarUbicacion = () => {
-    if (!navigator.geolocation) return;
-    setGeoLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      ({ coords }) => {
-        onChange("latitud", coords.latitude);
-        onChange("longitud", coords.longitude);
-        setGeoLoading(false);
-      },
-      () => setGeoLoading(false)
-    );
+function ResumenRow({ icon, label, value }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
+      <span style={{ width: 32, height: 32, borderRadius: 10, background: "var(--cream-card)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+        <Icon name={icon} size={16} stroke="var(--green-deep)" />
+      </span>
+      <span style={{ fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)", width: 86, flexShrink: 0 }}>{label}</span>
+      <span style={{ fontFamily: "var(--sans)", fontWeight: 600, fontSize: 14.5, color: "var(--ink)", textAlign: "right", flex: 1 }}>{value}</span>
+    </div>
+  );
+}
+
+export default function Paso4Confirmacion({ data, set }) {
+  const [mapCenter, setMapCenter] = useState(PUENTE_PIEDRA);
+
+  const tiposLabels = (data.tipos || []).map((t) => MAT[t]?.label).filter(Boolean);
+  const franja = FRANJAS.find((f) => f.id === data.franja);
+  const pos = data.lat && data.lon ? [data.lat, data.lon] : null;
+
+  const onAddrChange = (v) => {
+    set({ direccion: v, lat: null, lon: null });
   };
 
-  const handleSubmit = () => {
-    if (!form.direccion.trim()) {
-      setError("La dirección es obligatoria");
-      return;
-    }
-    setError("");
-    onSubmit();
+  const onMapClick = ({ lat, lng }) => {
+    set({ lat, lon: lng });
+    setMapCenter([lat, lng]);
   };
 
   return (
-    <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-1">Confirma tu solicitud</h3>
-      <p className="text-sm text-gray-500 mb-5">Revisa los datos y agrega tu dirección</p>
+    <div className="screen">
+      <h3 style={{ fontFamily: "var(--serif)", fontSize: 25, color: "var(--ink)", margin: "0 0 4px" }}>Confirma la recolección</h3>
+      <p style={{ fontFamily: "var(--sans)", fontSize: 14.5, color: "var(--ink-soft)", margin: "0 0 14px" }}>
+        Busca tu dirección o toca el mapa para marcar el punto.
+      </p>
 
-      {/* Resumen */}
-      <div className="bg-gray-50 rounded-xl p-4 mb-5 grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <span className="text-gray-400">Tipo</span>
-          <p className="font-medium text-gray-800">{TIPO_LABEL[form.tipo_residuo]}</p>
-        </div>
-        <div>
-          <span className="text-gray-400">Cantidad</span>
-          <p className="font-medium text-gray-800">{form.cantidad_kg} kg</p>
-        </div>
-        <div>
-          <span className="text-gray-400">Fecha</span>
-          <p className="font-medium text-gray-800">{form.fecha_recoleccion}</p>
-        </div>
-        <div>
-          <span className="text-gray-400">Franja</span>
-          <p className="font-medium text-gray-800">{FRANJA_LABEL[form.franja_horaria]}</p>
-        </div>
+      {/* Campo de dirección */}
+      <div style={{ marginBottom: 12 }}>
+        <Field
+          label="Dirección de recojo"
+          name="dir"
+          value={data.direccion}
+          onChange={onAddrChange}
+          placeholder="Escribe tu calle o sector…"
+        />
       </div>
 
-      {/* Dirección */}
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Dirección <span className="text-red-500">*</span>
-      </label>
-      <input
-        type="text"
-        value={form.direccion}
-        onChange={(e) => { onChange("direccion", e.target.value); setError(""); }}
-        placeholder="Ej: Av. Arequipa 1234, Miraflores"
-        className={`w-full border-2 rounded-xl px-4 py-2.5 focus:outline-none transition mb-1
-          ${error ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-emerald-500"}`}
-      />
-      {error && <p className="text-red-500 text-xs mb-3">{error}</p>}
-
-      {/* Mapa */}
-      <div className="flex items-center justify-between mb-2 mt-3">
-        <span className="text-sm font-medium text-gray-700">Ubicación en mapa <span className="text-gray-400 font-normal">(opcional)</span></span>
-        <button
-          type="button"
-          onClick={usarUbicacion}
-          disabled={geoLoading}
-          className="text-xs text-emerald-600 hover:underline disabled:opacity-50"
-        >
-          {geoLoading ? "Obteniendo..." : "📍 Usar mi ubicación"}
-        </button>
-      </div>
-      <p className="text-xs text-gray-400 mb-2">Haz clic en el mapa para marcar el punto de recolección</p>
-
-      <div className="rounded-xl overflow-hidden border border-gray-200" style={{ height: 200 }}>
+      {/* Mapa Leaflet real */}
+      <div style={{ borderRadius: 16, overflow: "hidden", border: "1.5px solid " + (pos ? "var(--green-soft)" : "var(--line)"), marginBottom: 10, transition: "border-color .2s" }}>
         <MapContainer
-          center={pos || LIMA}
-          zoom={pos ? 15 : 12}
-          style={{ height: "100%", width: "100%" }}
-          key={pos ? `${pos[0]}-${pos[1]}` : "default"}
+          center={PUENTE_PIEDRA}
+          zoom={15}
+          style={{ height: 200, width: "100%" }}
+          zoomControl={true}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <ClickHandler onPos={(lat, lng) => { onChange("latitud", lat); onChange("longitud", lng); }} />
-          {pos && <Marker position={pos} />}
+          <MapCenterUpdater center={mapCenter} />
+          <MapClickHandler onMapClick={onMapClick} />
+          {pos && <Marker position={pos} icon={ICONO_RECOJO} title="Punto de recojo" />}
         </MapContainer>
       </div>
 
-      {pos && (
-        <p className="text-xs text-emerald-600 mt-1">
-          Coordenadas: {pos[0].toFixed(5)}, {pos[1].toFixed(5)}
-          <button type="button" onClick={() => { onChange("latitud", null); onChange("longitud", null); }}
-            className="ml-2 text-gray-400 hover:text-red-500">✕ quitar</button>
-        </p>
-      )}
+      <p style={{ fontFamily: "var(--sans)", fontSize: 12.5, color: pos ? "var(--green-deep)" : "var(--ink-soft)", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 5 }}>
+        {pos
+          ? <><Icon name="check" size={14} stroke="var(--green-deep)" />Punto confirmado · toca el mapa para ajustar</>
+          : <><Icon name="pin" size={14} stroke="var(--ink-soft)" />Toca el mapa para fijar el punto de recojo</>
+        }
+      </p>
 
-      <div className="mt-6 flex justify-between">
-        <button type="button" onClick={onBack} disabled={loading}
-          className="px-6 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 disabled:opacity-50 transition">
-          ← Atrás
-        </button>
-        <button type="button" onClick={handleSubmit} disabled={loading}
-          className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 disabled:opacity-50 transition flex items-center gap-2">
-          {loading ? <><span className="animate-spin">⏳</span> Enviando...</> : "✅ Confirmar solicitud"}
-        </button>
+      {/* Resumen */}
+      <div style={{ background: "var(--cream)", border: "1.5px solid var(--line)", borderRadius: 16, padding: "16px 18px" }}>
+        <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 12, letterSpacing: 1, textTransform: "uppercase", color: "var(--ink-soft)" }}>Resumen</span>
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+          <ResumenRow icon="recycle" label="Materiales" value={tiposLabels.length ? tiposLabels.join(", ") : "—"} />
+          <ResumenRow icon="weight" label="Cantidad" value={data.kg + " kg aprox."} />
+          <ResumenRow icon="calendar" label="Horario" value={franja ? franja.label + " · " + franja.rango : "—"} />
+        </div>
       </div>
     </div>
   );

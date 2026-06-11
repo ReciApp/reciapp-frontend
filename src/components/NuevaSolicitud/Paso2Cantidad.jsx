@@ -1,49 +1,34 @@
-import { useState } from "react";
+import React from "react";
+import { Icon } from "../ui/Primitivos";
 
-export default function Paso2Cantidad({ form, onChange, onNext, onBack }) {
-  const [error, setError] = useState("");
+const stepperBtn = { width: 56, height: 56, borderRadius: 18, border: "1.5px solid var(--line)", background: "var(--cream-card)", display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 3px 0 oklch(0.88 0.03 120)" };
 
-  const handleNext = () => {
-    const val = parseFloat(form.cantidad_kg);
-    if (!form.cantidad_kg || isNaN(val) || val <= 0) {
-      setError("Ingresa una cantidad mayor a 0 kg");
-      return;
-    }
-    setError("");
-    onNext();
-  };
-
+export default function Paso2Cantidad({ data, set }) {
+  const kg = data.kg;
+  const step = (d) => set({ kg: Math.max(1, Math.min(200, kg + d)) });
   return (
-    <div>
-      <h3 className="text-lg font-semibold text-gray-800 mb-1">¿Cuántos kilogramos aproximadamente?</h3>
-      <p className="text-sm text-gray-500 mb-6">Ingresa el peso estimado del material a reciclar</p>
+    <div className="screen">
+      <h3 style={{ fontFamily: "var(--serif)", fontSize: 25, color: "var(--ink)", margin: "0 0 4px" }}>Cantidad aproximada</h3>
+      <p style={{ fontFamily: "var(--sans)", fontSize: 14.5, color: "var(--ink-soft)", margin: "0 0 22px" }}>Estima el peso total de tus materiales.</p>
 
-      <div className="relative">
-        <input
-          type="number"
-          min="0.1"
-          step="0.1"
-          value={form.cantidad_kg}
-          onChange={(e) => {
-            onChange("cantidad_kg", e.target.value);
-            setError("");
-          }}
-          placeholder="Ej: 2.5"
-          className={`w-full border-2 rounded-xl px-4 py-3 pr-12 text-lg focus:outline-none transition
-            ${error ? "border-red-400 focus:border-red-500" : "border-gray-200 focus:border-emerald-500"}`}
-        />
-        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">kg</span>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 22, marginBottom: 24 }}>
+        <button type="button" onClick={() => step(-1)} style={stepperBtn}><Icon name="minus" size={22} stroke="var(--green-deep)" /></button>
+        <div style={{ textAlign: "center", minWidth: 140 }}>
+          <div style={{ fontFamily: "var(--serif)", fontSize: 72, color: "var(--green-deep)", lineHeight: 1 }}>{kg}</div>
+          <div style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 16, color: "var(--ink-soft)", letterSpacing: 1, textTransform: "uppercase" }}>kilogramos</div>
+        </div>
+        <button type="button" onClick={() => step(1)} style={stepperBtn}><Icon name="plus" size={22} stroke="var(--green-deep)" /></button>
       </div>
 
-      {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
-
-      <div className="mt-8 flex justify-between">
-        <button type="button" onClick={onBack} className="px-6 py-2 border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition">
-          ← Atrás
-        </button>
-        <button type="button" onClick={handleNext} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition">
-          Siguiente →
-        </button>
+      <input type="range" min="1" max="50" value={Math.min(kg, 50)} onChange={(e) => set({ kg: parseInt(e.target.value, 10) })}
+        style={{ width: "100%", accentColor: "var(--green)", height: 6 }} />
+      <div style={{ display: "flex", gap: 9, marginTop: 18, flexWrap: "wrap", justifyContent: "center" }}>
+        {[2, 5, 10, 20, 40].map((v) => (
+          <button key={v} type="button" onClick={() => set({ kg: v })} style={{
+            fontFamily: "var(--sans)", fontWeight: 700, fontSize: 14, padding: "9px 16px", borderRadius: 999, cursor: "pointer",
+            border: "1.5px solid " + (kg === v ? "var(--green)" : "var(--line)"), background: kg === v ? "var(--green)" : "var(--cream-card)", color: kg === v ? "#fff" : "var(--ink)",
+          }}>{v} kg</button>
+        ))}
       </div>
     </div>
   );

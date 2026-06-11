@@ -1,130 +1,83 @@
-import { useEffect, useState } from "react";
-import { updateMe } from "../api/users";
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect } from "react";
 import Navbar from "../components/Navbar";
-
-const ROL_LABEL = { ciudadano: "Ciudadano", reciclador: "Reciclador", admin: "Administrador" };
+import { Icon, PageHead, Avatar, Field, PrimaryButton, Starburst } from "../components/ui/Primitivos";
+import { useAuth } from "../context/AuthContext";
+import { updateMe } from "../api/users";
 
 export default function Profile() {
-  const { user, login: setUser } = useAuth();
+  const { user, logout, login: setUser } = useAuth();
+  const role = user?.rol || "ciudadano";
+  const esReciclador = role === "reciclador";
 
-  const [form, setForm] = useState({
-    nombre: user?.nombre || "",
-    celular: user?.celular || "",
-    zona_cobertura: user?.zona_cobertura || "",
-    disponibilidad_horaria: user?.disponibilidad_horaria || "",
+  const [f, setF] = useState({
+    nombre: "",
+    celular: "",
+    zona: "",
+    disp: "",
   });
-  const [msg, setMsg] = useState({ type: "", text: "" });
-  const [loading, setLoading] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); setSaved(false); };
 
   useEffect(() => {
     if (user) {
-      setForm({
-        nombre: user.nombre || "",
+      setF({
+        nombre: user.nombre || user.name || "",
         celular: user.celular || "",
-        zona_cobertura: user.zona_cobertura || "",
-        disponibilidad_horaria: user.disponibilidad_horaria || "",
+        zona: user.zona_cobertura || "",
+        disp: user.disponibilidad_horaria || "",
       });
     }
   }, [user]);
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
+  const save = async (e) => {
     e.preventDefault();
-    setMsg({ type: "", text: "" });
-    setLoading(true);
     try {
-      const updated = await updateMe(form);
+      const payload = { nombre: f.nombre, celular: f.celular };
+      if (esReciclador) {
+        payload.zona_cobertura = f.zona;
+        payload.disponibilidad_horaria = f.disp;
+      }
+      const updated = await updateMe(payload);
       setUser(updated);
-      setMsg({ type: "success", text: "Perfil actualizado correctamente." });
-    } catch (err) {
-      setMsg({ type: "error", text: err.response?.data?.detail || "Error al actualizar." });
-    } finally {
-      setLoading(false);
-    }
+      setSaved(true);
+    } catch {}
   };
 
+  const userName = f.nombre || user?.nombre || "usuario";
+  const accent = esReciclador ? "var(--orange)" : "var(--green)";
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="max-w-lg mx-auto mt-10 px-4">
-        <div className="bg-white rounded-2xl shadow p-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-1">Mi perfil</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            {user?.correo} — <span className="text-emerald-600">{ROL_LABEL[user?.rol]}</span>
-          </p>
+    <div className="paper-tex" style={{ minHeight: "100vh", background: "var(--cream)" }}>
+      <Navbar user={userName} role={role} onLogout={logout} />
+      <main className="screen" style={{ maxWidth: 720, width: "100%", margin: "0 auto", padding: "clamp(26px, 4vw, 44px) clamp(16px, 4vw, 36px) 60px" }}>
+        <PageHead eyebrow="Tu cuenta" title="Mi perfil" sub="Actualiza tus datos de contacto." />
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-              <input
-                type="text"
-                name="nombre"
-                required
-                value={form.nombre}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Celular</label>
-              <input
-                type="tel"
-                name="celular"
-                value={form.celular}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-
-            {user?.rol === "reciclador" && (
-              <>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Zona de cobertura</label>
-                  <input
-                    type="text"
-                    name="zona_cobertura"
-                    value={form.zona_cobertura}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Disponibilidad horaria</label>
-                  <input
-                    type="text"
-                    name="disponibilidad_horaria"
-                    value={form.disponibilidad_horaria}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </>
-            )}
-
-            {msg.text && (
-              <p
-                className={`text-sm px-4 py-2 rounded-lg border ${
-                  msg.type === "success"
-                    ? "text-emerald-700 bg-emerald-50 border-emerald-200"
-                    : "text-red-600 bg-red-50 border-red-200"
-                }`}
-              >
-                {msg.text}
-              </p>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-60"
-            >
-              {loading ? "Guardando..." : "Guardar cambios"}
-            </button>
-          </form>
+        <div style={{ position: "relative", overflow: "hidden", background: "var(--green)", borderRadius: 22, padding: "24px 26px", boxShadow: "0 6px 0 var(--green-deep)", display: "flex", alignItems: "center", gap: 18, marginBottom: 22 }}>
+          <div style={{ position: "absolute", right: "-6%", top: "-40%", pointerEvents: "none", animation: "floaty 9s ease-in-out infinite" }}><Starburst points={18} color="var(--yellow)" size={92} inner={0.5} style={{ opacity: 0.85 }} /></div>
+          <Avatar name={userName} size={70} bg="var(--cream)" color="var(--green-deep)" />
+          <div style={{ position: "relative", zIndex: 2, minWidth: 0 }}>
+            <h2 style={{ fontFamily: "var(--serif)", fontSize: 28, color: "#fff", margin: 0, lineHeight: 1.16 }}>{userName}</h2>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 7, marginTop: 8, background: "var(--green-deep)", color: "#fff", fontFamily: "var(--sans)", fontWeight: 700, fontSize: 12, letterSpacing: 0.8, textTransform: "uppercase", padding: "5px 13px", borderRadius: 999 }}><Icon name={esReciclador ? "truck" : "user"} size={14} stroke="#fff" />{esReciclador ? "Reciclador" : "Ciudadano"}</span>
+          </div>
         </div>
+
+        <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
+          <Field label="Nombre completo" value={f.nombre} onChange={(v) => set("nombre", v)} />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <Field label="Correo electrónico" value={user?.correo || user?.email || ""} disabled hint="No editable" />
+            <Field label="Celular" inputMode="numeric" maxLength={9} value={f.celular} onChange={(v) => set("celular", v.replace(/\D/g, ""))} />
+          </div>
+          {esReciclador && (
+            <>
+              <Field label="Zona de cobertura" value={f.zona} onChange={(v) => set("zona", v)} />
+              <Field label="Disponibilidad horaria" value={f.disp} onChange={(v) => set("disp", v)} />
+            </>
+          )}
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 6 }}>
+            <PrimaryButton type="submit" color={accent} deep={esReciclador ? "oklch(0.6 0.15 50)" : "var(--green-deep)"}><Icon name="check" size={18} stroke="#fff" />Guardar cambios</PrimaryButton>
+            {saved && <span className="screen" style={{ display: "inline-flex", alignItems: "center", gap: 7, fontFamily: "var(--sans)", fontWeight: 600, fontSize: 14, color: "var(--green-deep)" }}><Icon name="check" size={16} stroke="var(--green-deep)" />Guardado</span>}
+          </div>
+        </form>
       </main>
     </div>
   );

@@ -1,35 +1,26 @@
-const PASOS = ["Tipo", "Cantidad", "Fecha", "Confirmar"];
+import React from "react";
+import { Icon } from "../ui/Primitivos";
 
-export default function BarraPasos({ actual }) {
+export const PASOS = ["Tipo", "Cantidad", "Fecha", "Confirmar"];
+
+export default function BarraPasos({ paso, total = 4 }) {
   return (
-    <div className="flex items-center justify-between mb-8">
+    <div style={{ display: "flex", alignItems: "center", gap: 0, width: "100%" }}>
       {PASOS.map((label, i) => {
-        const n = i + 1;
-        const done = n < actual;
-        const active = n === actual;
+        const done = i < paso, active = i === paso;
         return (
-          <div key={n} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-colors
-                  ${done ? "bg-emerald-500 border-emerald-500 text-white" : ""}
-                  ${active ? "bg-white border-emerald-500 text-emerald-600" : ""}
-                  ${!done && !active ? "bg-white border-gray-300 text-gray-400" : ""}`}
-              >
-                {done ? "✓" : n}
-              </div>
-              <span
-                className={`text-xs mt-1 font-medium ${active ? "text-emerald-600" : done ? "text-emerald-500" : "text-gray-400"}`}
-              >
-                {label}
+          <React.Fragment key={label}>
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 7, flexShrink: 0 }}>
+              <span style={{ width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center", flexShrink: 0,
+                background: done ? "var(--green)" : active ? "var(--green)" : "var(--cream)", color: done || active ? "#fff" : "var(--ink-soft)",
+                border: "2px solid " + (done || active ? "var(--green)" : "var(--line)"), fontFamily: "var(--serif)", fontSize: 16,
+                boxShadow: active ? "0 0 0 4px oklch(0.66 0.15 142 / 0.2)" : "none", transition: "all .2s" }}>
+                {done ? <Icon name="check" size={17} stroke="#fff" sw={3} /> : i + 1}
               </span>
+              <span style={{ fontFamily: "var(--sans)", fontWeight: active ? 700 : 600, fontSize: 11.5, color: done || active ? "var(--ink)" : "var(--ink-soft)" }}>{label}</span>
             </div>
-            {i < PASOS.length - 1 && (
-              <div
-                className={`flex-1 h-0.5 mx-2 mb-5 transition-colors ${done ? "bg-emerald-500" : "bg-gray-200"}`}
-              />
-            )}
-          </div>
+            {i < total - 1 && <span style={{ flex: 1, height: 3, borderRadius: 2, margin: "0 6px", marginBottom: 18, background: i < paso ? "var(--green)" : "var(--line)", transition: "background .2s" }} />}
+          </React.Fragment>
         );
       })}
     </div>

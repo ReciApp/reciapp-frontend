@@ -1,140 +1,101 @@
-import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Field, EyeToggle, PrimaryButton, SuccessBox, Icon } from "../components/ui/Primitivos";
 import { registerCiudadano, registerReciclador } from "../api/auth";
-
-const FIELDS_CIUDADANO = [
-  { name: "nombre", label: "Nombre completo", type: "text", required: true },
-  { name: "correo", label: "Correo electrónico", type: "email", required: true },
-  { name: "dni", label: "DNI (8 dígitos)", type: "text", required: false, maxLength: 8 },
-  { name: "celular", label: "Celular", type: "tel", required: false },
-  { name: "contrasena", label: "Contraseña (mínimo 8 caracteres)", type: "password", required: true },
-  { name: "confirmar", label: "Confirmar contraseña", type: "password", required: true },
-];
-
-const FIELDS_RECICLADOR_EXTRA = [
-  { name: "zona_cobertura", label: "Zona de cobertura", type: "text", required: true },
-  { name: "disponibilidad_horaria", label: "Disponibilidad horaria (ej: Lun-Vie 8am-5pm)", type: "text", required: true },
-];
 
 export default function Register({ tipo = "ciudadano" }) {
   const navigate = useNavigate();
-  const isReciclador = tipo === "reciclador";
+  const esReciclador = tipo === "reciclador";
+  const [f, setF] = useState({ nombre: "", email: "", dni: "", celular: "", pass: "", confirm: "", zona: "", disp: "" });
+  const [show, setShow] = useState(false);
+  const [showC, setShowC] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [status, setStatus] = useState("idle");
+  const set = (k, v) => { setF((p) => ({ ...p, [k]: v })); if (errors[k]) setErrors((e) => ({ ...e, [k]: null })); };
+  const onlyDigits = (v) => v.replace(/\D/g, "");
 
-  const [form, setForm] = useState({
-    nombre: "", correo: "", dni: "", celular: "",
-    contrasena: "", confirmar: "",
-    zona_cobertura: "", disponibilidad_horaria: "",
-  });
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (form.contrasena !== form.confirmar) {
-      setError("Las contraseñas no coinciden.");
-      return;
+  const submit = async (ev) => {
+    ev.preventDefault();
+    const e = {};
+    if (!f.nombre.trim()) e.nombre = "Ingresa tu nombre completo.";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = "El correo no es válido.";
+    if (f.dni.length !== 8) e.dni = "El DNI debe tener 8 dígitos.";
+    if (f.celular.length < 9) e.celular = "Ingresa un celular válido.";
+    if (f.pass.length < 8) e.pass = "Mínimo 8 caracteres.";
+    if (f.confirm !== f.pass || !f.confirm) e.confirm = "Las contraseñas no coinciden.";
+    if (esReciclador) {
+      if (!f.zona.trim()) e.zona = "Indica tu zona de cobertura.";
+      if (!f.disp.trim()) e.disp = "Indica tu disponibilidad.";
     }
-    if (form.contrasena.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
-      return;
-    }
+    setErrors(e);
+    if (Object.keys(e).length) return;
 
-    setLoading(true);
+    setStatus("loading");
     try {
       const payload = {
-        nombre: form.nombre,
-        correo: form.correo,
-        dni: form.dni || undefined,
-        celular: form.celular || undefined,
-        contrasena: form.contrasena,
-        ...(isReciclador && {
-          zona_cobertura: form.zona_cobertura,
-          disponibilidad_horaria: form.disponibilidad_horaria,
-        }),
+        nombre: f.nombre.trim(),
+        correo: f.email.trim(),
+        dni: f.dni,
+        celular: f.celular,
+        contrasena: f.pass,
       };
-
-      if (isReciclador) {
-        await registerReciclador(payload);
-        setSuccess("Registro enviado. Tu solicitud será revisada por el administrador.");
+      if (esReciclador) {
+        await registerReciclador({ ...payload, zona_cobertura: f.zona.trim(), disponibilidad_horaria: f.disp.trim() });
       } else {
         await registerCiudadano(payload);
-        setSuccess("¡Cuenta creada! Ya puedes iniciar sesión.");
-        setTimeout(() => navigate("/login"), 2000);
       }
+      setStatus("done");
     } catch (err) {
-      setError(err.response?.data?.detail || "Error al registrar. Intenta de nuevo.");
-    } finally {
-      setLoading(false);
+      setStatus("idle");
+      const detail = err.response?.data?.detail;
+      setErrors({ email: typeof detail === "string" ? detail : "No se pudo completar el registro." });
     }
   };
 
-  const allFields = isReciclador
-    ? [...FIELDS_CIUDADANO, ...FIELDS_RECICLADOR_EXTRA]
-    : FIELDS_CIUDADANO;
+  const accent = esReciclador ? "var(--orange)" : "var(--green)";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-lg bg-white rounded-2xl shadow-xl p-8">
-        <div className="text-center mb-6">
-          <span className="text-4xl">♻</span>
-          <h1 className="text-2xl font-bold text-emerald-700 mt-2">ReciApp</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {isReciclador ? "Registro de reciclador" : "Crear cuenta ciudadano"}
-          </p>
+    <div style={{ width: "100%", maxWidth: 468, marginInline: "auto" }}>
+        <div style={{ marginBottom: 16 }}>
+          <span style={{ display: "inline-grid", placeItems: "center", width: 42, height: 42, borderRadius: 12, background: accent, marginBottom: 12, color: "#fff" }}>
+            <Icon name={esReciclador ? "truck" : "user"} size={22} stroke="#fff" />
+          </span>
+          <h2 style={{ fontFamily: "var(--serif)", fontSize: "clamp(27px, 3vw, 34px)", color: "var(--ink)", margin: "0 0 8px", lineHeight: 1.14 }}>{esReciclador ? "Registro de Reciclador" : "Crear cuenta"}</h2>
+          <p style={{ fontFamily: "var(--sans)", color: "var(--ink-soft)", margin: 0, fontSize: 15 }}>{esReciclador ? "Tu solicitud será revisada por el administrador." : "Únete a ReciApp como ciudadano."}</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {allFields.map((field) => (
-            <div key={field.name}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {field.label}
-              </label>
-              <input
-                type={field.type}
-                name={field.name}
-                required={field.required}
-                maxLength={field.maxLength}
-                value={form[field.name]}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+        {status === "done" ? (
+          <div>
+            <SuccessBox title={esReciclador ? "¡Solicitud enviada!" : "¡Cuenta creada!"} msg={esReciclador ? "Te avisaremos por correo cuando el administrador apruebe tu registro." : "Ya puedes iniciar sesión y empezar a reciclar."} color={accent} />
+            <div style={{ marginTop: 16, display: "flex", justifyContent: "center" }}><PrimaryButton type="button" onClick={() => navigate("/login")}>Ir a iniciar sesión</PrimaryButton></div>
+          </div>
+        ) : (
+          <form onSubmit={submit} noValidate style={{ display: "flex", flexDirection: "column", gap: 13 }}>
+            <Field label="Nombre completo" name="name" autoComplete="name" value={f.nombre} onChange={(v) => set("nombre", v)} placeholder="Ej: María Quispe" error={errors.nombre} />
+            <Field label="Correo electrónico" name="email" type="email" autoComplete="email" value={f.email} onChange={(v) => set("email", v)} placeholder="tucorreo@ejemplo.com" error={errors.email} />
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <Field label="DNI (8 dígitos)" name="dni" inputMode="numeric" maxLength={8} value={f.dni} onChange={(v) => set("dni", onlyDigits(v))} placeholder="12345678" error={errors.dni} />
+              <Field label="Celular" name="tel" type="tel" inputMode="numeric" maxLength={9} value={f.celular} onChange={(v) => set("celular", onlyDigits(v))} placeholder="987654321" error={errors.celular} />
             </div>
-          ))}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+              <Field label="Contraseña (mín. 8)" name="pass" type={show ? "text" : "password"} value={f.pass} onChange={(v) => set("pass", v)} placeholder="••••••••" error={errors.pass} trailing={<EyeToggle show={show} onClick={() => setShow(!show)} />} />
+              <Field label="Confirmar" name="confirm" type={showC ? "text" : "password"} value={f.confirm} onChange={(v) => set("confirm", v)} placeholder="••••••••" error={errors.confirm} trailing={<EyeToggle show={showC} onClick={() => setShowC(!showC)} />} />
+            </div>
+            {esReciclador && (
+              <>
+                <Field label="Zona de cobertura" name="zona" value={f.zona} onChange={(v) => set("zona", v)} placeholder="Ej: Miraflores, Surco, Barranco" error={errors.zona} />
+                <Field label="Disponibilidad horaria" name="disp" value={f.disp} onChange={(v) => set("disp", v)} placeholder="Ej: mañana, tarde" error={errors.disp} />
+              </>
+            )}
+            <PrimaryButton loading={status === "loading"} full color={accent} deep={esReciclador ? "oklch(0.6 0.15 50)" : "var(--green-deep)"}>
+              {esReciclador ? "Enviar solicitud" : "Crear cuenta"}{status !== "loading" && <span style={{ fontSize: 18 }}>→</span>}
+            </PrimaryButton>
+          </form>
+        )}
 
-          {error && (
-            <p className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg px-4 py-2">
-              {error}
-            </p>
-          )}
-
-          {success && (
-            <p className="text-emerald-700 text-sm bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-2">
-              {success}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || !!success}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {loading ? "Registrando..." : isReciclador ? "Enviar solicitud" : "Crear cuenta"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-gray-500">
-          ¿Ya tienes cuenta?{" "}
-          <Link to="/login" className="text-emerald-600 hover:underline font-medium">
-            Inicia sesión
-          </Link>
+        <p style={{ fontFamily: "var(--sans)", fontSize: 14, color: "var(--ink-soft)", textAlign: "center", marginTop: 22 }}>
+          ¿Ya tienes cuenta? <a href="#" onClick={(e) => { e.preventDefault(); navigate("/login"); }} style={{ color: "var(--green-deep)", fontWeight: 700, textDecoration: "none" }}>Inicia sesión</a>
         </p>
-      </div>
     </div>
   );
 }

@@ -1,227 +1,164 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { Link } from "react-router-dom";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
-import { listarSolicitudes } from "../api/solicitudes";
-import { getUsuario } from "../api/users";
+import PanelConfirmacion from "../components/ConfirmacionRecoleccion/PanelConfirmacion";
+import { Icon, PageHead, StatusBadge, Avatar, PrimaryButton, GhostButton } from "../components/ui/Primitivos";
+import { MAT } from "../lib/datos";
+import { listarSolicitudes, confirmarSolicitud } from "../api/solicitudes";
 import { useWebSocket } from "../hooks/useWebSocket";
 
-// ── Config de estados ──────────────────────────────────────────────────────────
-const ESTADO = {
-  pendiente:  { badge: "bg-amber-100 text-amber-700 border border-amber-200",  icono: "⏳", label: "Pendiente" },
-  asignada:   { badge: "bg-blue-100 text-blue-700 border border-blue-200",     icono: "👷", label: "Asignada" },
-  en_camino:  { badge: "bg-purple-100 text-purple-700 border border-purple-200", icono: "🚛", label: "En camino" },
-  completada: { badge: "bg-green-100 text-green-700 border border-green-200",  icono: "✅", label: "Completada" },
-  cancelada:  { badge: "bg-gray-100 text-gray-500 border border-gray-200",     icono: "❌", label: "Cancelada" },
-};
+const FILTROS = [
+  { id: "todas", label: "Todas" },
+  { id: "activas", label: "Activas" },
+  { id: "pendiente_confirmacion", label: "Por confirmar" },
+  { id: "completada", label: "Completadas" },
+  { id: "cancelada", label: "Canceladas" },
+];
+const ACTIVOS = ["pendiente", "asignada", "en_camino"];
 
-const TIPO_ICONO = {
-  plastico: "🧴", papel: "📄", vidrio: "🍶",
-  metal: "🔩", organico: "🍃", electronico: "💻",
-};
-
-const FRANJA_LABEL = { manana: "Mañana 🌅", tarde: "Tarde ☀️", noche: "Noche 🌙" };
-
-// ── Tarjeta individual ─────────────────────────────────────────────────────────
-function SolicitudCard({ solicitud, recicladorCache, onFetchReciclador }) {
-  const [abierta, setAbierta] = useState(false);
-  const { badge, icono, label } = ESTADO[solicitud.estado] || ESTADO.pendiente;
-  const reciclador = solicitud.reciclador_id ? recicladorCache[solicitud.reciclador_id] : null;
-
-  const handleAbrir = () => {
-    setAbierta((v) => !v);
-    if (!abierta && solicitud.reciclador_id && !recicladorCache[solicitud.reciclador_id]) {
-      onFetchReciclador(solicitud.reciclador_id);
-    }
-  };
-
+function SolicitudCard({ s, onConfirm, onTrack }) {
+  const [hover, setHover] = useState(false);
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden transition-all">
-      {/* Cabecera */}
-      <button
-        onClick={handleAbrir}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition text-left"
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-2xl">{TIPO_ICONO[solicitud.tipo_residuo] ?? "♻"}</span>
-          <div>
-            <p className="font-semibold text-gray-800 capitalize">{solicitud.tipo_residuo}</p>
-            <p className="text-xs text-gray-400">{solicitud.fecha_recoleccion} · {FRANJA_LABEL[solicitud.franja_horaria]}</p>
+    <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{ background: "var(--cream-card)", border: "1.5px solid " + (hover ? "var(--green-soft)" : "var(--line)"), borderRadius: 20, padding: "18px 20px", boxShadow: hover ? "0 12px 26px -16px oklch(0.3 0.04 130 / 0.5)" : "0 2px 0 oklch(0.88 0.03 120)", transition: "border-color .15s, box-shadow .15s" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 14, alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: 14, minWidth: 0, flex: "1 1 auto" }}>
+          <div style={{ display: "flex", flexShrink: 0 }}>
+            {s.tipos.slice(0, 3).map((t, i) => (
+              <span key={t} style={{ width: 44, height: 44, borderRadius: 13, background: MAT[t]?.color, display: "grid", placeItems: "center", marginLeft: i ? -12 : 0, border: "2.5px solid var(--cream-card)", color: "#fff" }}><Icon name={MAT[t]?.icon} size={20} stroke="#fff" /></span>
+            ))}
           </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${badge}`}>
-            {icono} {label}
-          </span>
-          <span className="text-gray-400 text-sm">{abierta ? "▲" : "▼"}</span>
-        </div>
-      </button>
-
-      {/* Detalle expandible */}
-      {abierta && (
-        <div className="border-t border-gray-100 px-5 py-4 bg-gray-50 text-sm space-y-2">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-            <Detail label="Cantidad" value={`${solicitud.cantidad_kg} kg`} />
-            <Detail label="Dirección" value={solicitud.direccion} />
-            <Detail label="Seguimiento" value={
-              <span className="font-mono text-xs text-emerald-600 break-all">
-                {solicitud.numero_seguimiento}
-              </span>
-            } />
-            <Detail label="Estado" value={`${icono} ${label}`} />
-          </div>
-
-          {/* Datos del reciclador asignado */}
-          {solicitud.reciclador_id && (
-            <div className="mt-3 pt-3 border-t border-gray-200">
-              <p className="font-semibold text-gray-700 mb-2">👷 Reciclador asignado</p>
-              {reciclador === undefined ? (
-                <p className="text-gray-400 text-xs">Cargando datos...</p>
-              ) : reciclador ? (
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
-                  <Detail label="Nombre" value={reciclador.nombre} />
-                  {reciclador.celular && <Detail label="Celular" value={reciclador.celular} />}
-                  {reciclador.zona_cobertura && <Detail label="Zona" value={reciclador.zona_cobertura} />}
-                  {reciclador.disponibilidad_horaria && (
-                    <Detail label="Horario" value={reciclador.disponibilidad_horaria} />
-                  )}
-                </div>
-              ) : (
-                <p className="text-gray-400 text-xs">No se pudo cargar la información.</p>
-              )}
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 9, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--serif)", fontSize: 19, color: "var(--ink)" }}>{s.tipos.map((t) => MAT[t]?.label).join(", ")}</span>
+              <span style={{ fontFamily: "var(--sans)", fontSize: 12.5, fontWeight: 700, color: "var(--ink-soft)", background: "var(--cream)", border: "1px solid var(--line)", borderRadius: 999, padding: "2px 9px" }}>{s.id}</span>
             </div>
-          )}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 7, fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)" }}>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="weight" size={15} stroke="var(--ink-soft)" />{s.kg} kg</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><Icon name="calendar" size={15} stroke="var(--ink-soft)" />{s.fecha} · {s.franja}</span>
+              <span style={{ display: "inline-flex", alignItems: "center", gap: 5, minWidth: 0 }}><Icon name="pin" size={15} stroke="var(--ink-soft)" /><span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 200 }}>{s.direccion}</span></span>
+            </div>
+          </div>
         </div>
-      )}
+        <StatusBadge estado={s.estado} />
+      </div>
+
+      {(s.reciclador && s.reciclador !== "—") || s.estado === "pendiente_confirmacion" || s.estado === "en_camino" ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
+            {s.reciclador && s.reciclador !== "—" && <>
+              <Avatar name={s.reciclador} size={32} bg="var(--green-soft)" />
+              <span style={{ fontFamily: "var(--sans)", fontSize: 14, color: "var(--ink)" }}><strong>{s.reciclador}</strong>{s.estado === "en_camino" && s.eta ? <span style={{ color: "var(--ink-soft)" }}> · llega en {s.eta}</span> : ""}</span>
+            </>}
+          </div>
+          <div style={{ display: "flex", gap: 9 }}>
+            {s.estado === "en_camino" && <GhostButton onClick={onTrack}><Icon name="gps" size={16} stroke="var(--green-deep)" />Seguir en vivo</GhostButton>}
+            {s.estado === "pendiente_confirmacion" && <PrimaryButton type="button" size="sm" onClick={onConfirm}><Icon name="check" size={17} stroke="#fff" />Confirmar recepción</PrimaryButton>}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function Detail({ label, value }) {
-  return (
-    <div>
-      <span className="text-gray-400 text-xs">{label}</span>
-      <p className="text-gray-800 font-medium">{value}</p>
-    </div>
-  );
-}
-
-// ── Página principal ───────────────────────────────────────────────────────────
 export default function MisSolicitudes() {
-  const [solicitudes, setSolicitudes] = useState([]);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [filtro, setFiltro] = useState("todas");
+  const [conf, setConf] = useState(null);
+  const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [recicladorCache, setRecicladorCache] = useState({});
-  const [wsConectado, setWsConectado] = useState(false);
   const notifRef = useRef([]);
 
-  // Cargar solicitudes al montar
+  const nombre = user?.nombre?.split(" ")[0] || "ciudadano";
+  const handleLogout = () => { logout(); navigate("/login", { replace: true }); };
+
   useEffect(() => {
     listarSolicitudes()
-      .then((data) => setSolicitudes(data))
-      .catch(() => setError("No se pudo cargar las solicitudes."))
+      .then((data) => {
+        // normaliza shape de la API al shape del diseño
+        const normalizado = data.map((s) => ({
+          id: s.numero_seguimiento || s.id,
+          tipos: [s.tipo_residuo],
+          kg: s.cantidad_kg,
+          fecha: s.fecha_recoleccion,
+          franja: s.franja_horaria,
+          direccion: s.direccion,
+          estado: s.estado,
+          reciclador: s.reciclador_nombre || "—",
+          _raw: s,
+        }));
+        setLista(normalizado);
+      })
+      .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  // Fetch reciclador (con caché para no duplicar peticiones)
-  const fetchReciclador = useCallback((recicladorId) => {
-    setRecicladorCache((prev) => {
-      if (prev[recicladorId] !== undefined) return prev;
-      getUsuario(recicladorId)
-        .then((data) => setRecicladorCache((c) => ({ ...c, [recicladorId]: data })))
-        .catch(() => setRecicladorCache((c) => ({ ...c, [recicladorId]: null })));
-      return { ...prev, [recicladorId]: undefined }; // marca como "cargando"
-    });
-  }, []);
-
-  // Handler WebSocket
   const handleWsMessage = useCallback((msg) => {
-    setSolicitudes((prev) => {
-      const idx = prev.findIndex((s) => s.id === msg.solicitud_id);
-      if (idx === -1) return prev;
-
-      const updated = [...prev];
-      if (msg.tipo === "solicitud_asignada") {
-        updated[idx] = { ...updated[idx], estado: "asignada", reciclador_id: msg.reciclador_id };
-        // Encolar fetch del reciclador
-        notifRef.current.push(msg.reciclador_id);
-      } else if (msg.tipo === "solicitud_en_camino") {
-        updated[idx] = { ...updated[idx], estado: "en_camino" };
-      } else if (msg.tipo === "solicitud_reasignando") {
-        updated[idx] = { ...updated[idx], estado: "pendiente", reciclador_id: null };
-      }
-      return updated;
-    });
+    setLista((prev) => prev.map((s) => {
+      if (s._raw?.id !== msg.solicitud_id) return s;
+      if (msg.tipo === "solicitud_asignada") return { ...s, estado: "asignada" };
+      if (msg.tipo === "solicitud_en_camino") return { ...s, estado: "en_camino" };
+      if (msg.tipo === "evidencia_registrada") return { ...s, estado: "pendiente_confirmacion" };
+      if (msg.tipo === "eco_creditos_acreditados") return { ...s, estado: "completada" };
+      return s;
+    }));
   }, []);
-
-  // Efecto para fetchear recicladores encolados por WS
-  useEffect(() => {
-    const ids = notifRef.current.splice(0);
-    ids.forEach(fetchReciclador);
-  }, [solicitudes, fetchReciclador]);
 
   useWebSocket(handleWsMessage, !loading);
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  const confirmar = async (sol) => {
+    try {
+      await confirmarSolicitud(sol._raw?.id || sol.id);
+    } catch { /* optimistic update igual */ }
+    setLista((l) => l.map((s) => s.id === sol.id ? { ...s, estado: "completada" } : s));
+    setConf(null);
+  };
+
+  const filtered = lista.filter((s) =>
+    filtro === "todas" ? true : filtro === "activas" ? ACTIVOS.includes(s.estado) : s.estado === filtro);
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      <main className="max-w-2xl mx-auto mt-10 px-4 pb-12">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Mis solicitudes</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Actualizaciones en tiempo real</p>
-          </div>
-          <Link
-            to="/ciudadano"
-            className="text-sm text-emerald-600 hover:underline"
-          >
-            ← Inicio
-          </Link>
+    <div className="paper-tex" style={{ minHeight: "100vh", background: "var(--cream)" }}>
+      <Navbar user={nombre} role="ciudadano" onLogout={handleLogout} />
+      <main className="screen" style={{ maxWidth: 920, width: "100%", margin: "0 auto", padding: "clamp(26px, 4vw, 44px) clamp(16px, 4vw, 36px) 60px" }}>
+        <PageHead eyebrow="Tus recolecciones" title="Mis solicitudes" sub="Sigue el estado de cada recojo en tiempo real."
+          right={<PrimaryButton type="button" size="sm" onClick={() => navigate("/ciudadano")}><Icon name="plus" size={18} stroke="#fff" />Nueva</PrimaryButton>} />
+
+        {/* filtros */}
+        <div style={{ display: "flex", gap: 9, overflowX: "auto", paddingBottom: 4, marginBottom: 20 }} className="no-bar">
+          {FILTROS.map((f) => {
+            const on = filtro === f.id;
+            const count = f.id === "todas" ? lista.length : f.id === "activas" ? lista.filter((s) => ACTIVOS.includes(s.estado)).length : lista.filter((s) => s.estado === f.id).length;
+            return (
+              <button key={f.id} type="button" onClick={() => setFiltro(f.id)} style={{ flexShrink: 0, fontFamily: "var(--sans)", fontWeight: 700, fontSize: 14, padding: "9px 16px", borderRadius: 999, cursor: "pointer", border: "1.5px solid " + (on ? "var(--green)" : "var(--line)"), background: on ? "var(--green)" : "var(--cream-card)", color: on ? "#fff" : "var(--ink)", display: "inline-flex", alignItems: "center", gap: 7 }}>
+                {f.label}<span style={{ fontSize: 12, opacity: 0.8, background: on ? "oklch(1 0 0 / 0.22)" : "var(--cream)", borderRadius: 999, padding: "1px 7px" }}>{count}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Leyenda de estados */}
-        <div className="flex flex-wrap gap-2 mb-5">
-          {Object.entries(ESTADO).map(([key, { badge, icono, label }]) => (
-            <span key={key} className={`text-xs px-2 py-0.5 rounded-full ${badge}`}>
-              {icono} {label}
-            </span>
-          ))}
-        </div>
-
-        {loading && (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-3xl mb-2 animate-spin inline-block">⏳</p>
-            <p>Cargando solicitudes...</p>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--ink-soft)" }}>
+            <div style={{ width: 32, height: 32, border: "3px solid var(--line)", borderTopColor: "var(--green)", borderRadius: "50%", animation: "spin .7s linear infinite", margin: "0 auto 14px" }} />
+            <p style={{ fontFamily: "var(--sans)", fontSize: 15.5 }}>Cargando solicitudes…</p>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--ink-soft)" }}>
+            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--cream-card)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", margin: "0 auto 14px" }}><Icon name="clipboard" size={28} stroke="var(--ink-soft)" /></div>
+            <p style={{ fontFamily: "var(--sans)", fontSize: 15.5 }}>No tienes solicitudes en esta categoría.</p>
+          </div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {filtered.map((s) => (
+              <SolicitudCard key={s.id} s={s} onConfirm={() => setConf(s)}
+                onTrack={() => navigate(`/ciudadano/solicitudes/${s._raw?.id || s.id}/seguimiento`)} />
+            ))}
           </div>
         )}
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-600">
-            {error}
-          </div>
-        )}
-
-        {!loading && !error && solicitudes.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
-            <p className="text-5xl mb-4">📋</p>
-            <p className="font-medium">Aún no tienes solicitudes</p>
-            <Link to="/ciudadano" className="text-emerald-600 hover:underline text-sm mt-2 inline-block">
-              Crear tu primera solicitud →
-            </Link>
-          </div>
-        )}
-
-        <div className="space-y-3">
-          {solicitudes.map((s) => (
-            <SolicitudCard
-              key={s.id}
-              solicitud={s}
-              recicladorCache={recicladorCache}
-              onFetchReciclador={fetchReciclador}
-            />
-          ))}
-        </div>
       </main>
+
+      <PanelConfirmacion open={!!conf} solicitud={conf?._raw || conf} onClose={() => setConf(null)} onConfirm={() => confirmar(conf)} />
     </div>
   );
 }
