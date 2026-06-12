@@ -11,6 +11,7 @@ const LINKS = {
   reciclador: [
     { path: "/reciclador", label: "Solicitudes" },
     { path: "/reciclador/backlog", label: "Backlog" },
+    { path: "/reciclador/manana", label: "Mi día de mañana" },
     { path: "/perfil", label: "Perfil" },
   ],
   admin: [{ path: "/admin", label: "Panel" }],

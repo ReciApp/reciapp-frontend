@@ -12,3 +12,15 @@ export const listarBacklog = (filtros = {}) => {
   if (filtros.fecha) params.fecha = filtros.fecha;
   return client.get("/api/reciclador/solicitudes", { params }).then((r) => r.data);
 };
+
+/**
+ * RECI-80: planificación del día siguiente (endpoints de RECI-79).
+ */
+export const planDiaSiguiente = () =>
+  client.get("/api/reciclador/dia-siguiente").then((r) => r.data);
+
+export const confirmarDia = (id) =>
+  client.put(`/api/reciclador/solicitudes/${id}/confirmar-dia`).then((r) => r.data);
+
+export const liberarSolicitud = (id) =>
+  client.put(`/api/reciclador/solicitudes/${id}/liberar`).then((r) => r.data);

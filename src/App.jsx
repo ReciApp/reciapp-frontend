@@ -13,6 +13,7 @@ import CitizenHome    from "./pages/CitizenHome";
 import MisSolicitudes from "./pages/MisSolicitudes";
 import RecyclerHome   from "./pages/RecyclerHome";
 import BacklogReciclador from "./pages/BacklogReciclador";
+import MiDiaManana    from "./pages/MiDiaManana";
 import AdminHome      from "./pages/AdminHome";
 import NotFound       from "./pages/NotFound";
 import MapaTracking   from "./components/MapaTracking/MapaTracking";
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/ciudadano/solicitudes/:id/seguimiento" element={<ProtectedRoute roles={["ciudadano"]}><MapaTracking /></ProtectedRoute>} />
       <Route path="/reciclador"          element={<ProtectedRoute roles={["reciclador"]}><RecyclerHome /></ProtectedRoute>} />
       <Route path="/reciclador/backlog"  element={<ProtectedRoute roles={["reciclador"]}><BacklogReciclador /></ProtectedRoute>} />
+      <Route path="/reciclador/manana"   element={<ProtectedRoute roles={["reciclador"]}><MiDiaManana /></ProtectedRoute>} />
       <Route path="/admin"               element={<ProtectedRoute roles={["admin"]}><AdminHome /></ProtectedRoute>} />
       <Route path="/perfil"              element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/sin-acceso" element={<NotFound />} />
