@@ -15,6 +15,7 @@ import RecyclerHome   from "./pages/RecyclerHome";
 import BacklogReciclador from "./pages/BacklogReciclador";
 import MiDiaManana    from "./pages/MiDiaManana";
 import AdminHome      from "./pages/AdminHome";
+import AdminRewards   from "./pages/AdminRewards";
 import NotFound       from "./pages/NotFound";
 import MapaTracking   from "./components/MapaTracking/MapaTracking";
 
@@ -54,6 +55,7 @@ export default function App() {
       <Route path="/reciclador/backlog"  element={<ProtectedRoute roles={["reciclador"]}><BacklogReciclador /></ProtectedRoute>} />
       <Route path="/reciclador/manana"   element={<ProtectedRoute roles={["reciclador"]}><MiDiaManana /></ProtectedRoute>} />
       <Route path="/admin"               element={<ProtectedRoute roles={["admin"]}><AdminHome /></ProtectedRoute>} />
+      <Route path="/admin/rewards"       element={<ProtectedRoute roles={["admin"]}><AdminRewards /></ProtectedRoute>} />
       <Route path="/perfil"              element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/sin-acceso" element={<NotFound />} />
       <Route path="*"           element={<NotFound />} />
