@@ -14,7 +14,10 @@ const LINKS = {
     { path: "/reciclador/manana", label: "Mi día de mañana" },
     { path: "/perfil", label: "Perfil" },
   ],
-  admin: [{ path: "/admin", label: "Panel" }],
+  admin: [
+    { path: "/admin", label: "Panel" },
+    { path: "/admin/rewards", label: "Recompensas" },
+  ],
 };
 
 export default function Navbar({ user = "Usuario", role = "ciudadano", onLogout }) {
