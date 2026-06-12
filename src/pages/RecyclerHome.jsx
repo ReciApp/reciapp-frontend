@@ -5,6 +5,7 @@ import TarjetaSolicitudEntrante from "../components/PanelReciclador/TarjetaSolic
 import TarjetaSolicitudDisponible from "../components/PanelReciclador/TarjetaSolicitudDisponible";
 import FormularioEvidencia from "../components/PanelReciclador/FormularioEvidencia";
 import MapaNavegacion from "../components/MapaNavegacion/MapaNavegacion";
+import MapaMultiParada from "../components/MapaMultiParada/MapaMultiParada";
 import { useAuth } from "../context/AuthContext";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { listarSolicitudes, listarDisponibles, aceptarSolicitud, rechazarSolicitud, tomarSolicitud } from "../api/solicitudes";
@@ -35,6 +36,7 @@ export default function RecyclerHome() {
   const [activaIdx, setActivaIdx] = useState(0);
   const [loading, setLoading] = useState(true);
   const [rutaData, setRutaData] = useState({});
+  const [vistaMulti, setVistaMulti] = useState(false);
 
   useEffect(() => {
     listarSolicitudes()
@@ -145,7 +147,25 @@ export default function RecyclerHome() {
 
               {enCamino.length > 1 && (
                 <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-                  {enCamino.map((s, i) => (
+                  {/* RECI-76: alterna entre navegación individual y ruta multi-parada */}
+                  <button
+                    type="button"
+                    onClick={() => setVistaMulti((v) => !v)}
+                    style={{
+                      display: "inline-flex", alignItems: "center", gap: 7,
+                      fontFamily: "var(--sans)", fontWeight: 700, fontSize: 13,
+                      padding: "7px 14px", borderRadius: 999, cursor: "pointer",
+                      border: "1.5px solid " + (vistaMulti ? "var(--orange)" : "var(--line)"),
+                      background: vistaMulti ? "var(--orange)" : "var(--cream-card)",
+                      color: vistaMulti ? "#fff" : "var(--ink-soft)",
+                      boxShadow: vistaMulti ? "0 3px 0 oklch(0.55 0.15 50)" : "0 2px 0 oklch(0.88 0.03 120)",
+                      transition: "all .15s",
+                    }}
+                  >
+                    <Icon name="map" size={15} stroke={vistaMulti ? "#fff" : "var(--ink-soft)"} />
+                    Ruta multi-parada
+                  </button>
+                  {!vistaMulti && enCamino.map((s, i) => (
                     <button
                       key={s.id}
                       type="button"
@@ -169,12 +189,16 @@ export default function RecyclerHome() {
               )}
 
               <div style={{ background: "var(--cream-card)", border: "1.5px solid var(--green-soft)", borderRadius: 20, padding: 16, boxShadow: "0 2px 0 oklch(0.88 0.03 120)" }}>
-                {/* Mapa Leaflet con GPS + ruta A* */}
-                <MapaNavegacion
-                  solicitud={activa?._raw ?? null}
-                  wsRef={wsRef}
-                  rutaData={activa ? (rutaData[activa.id] ?? null) : null}
-                />
+                {/* Mapa Leaflet con GPS + ruta A* (RECI-76: vista multi-parada opcional) */}
+                {vistaMulti && enCamino.length > 1 ? (
+                  <MapaMultiParada solicitudes={enCamino.map((s) => s._raw)} />
+                ) : (
+                  <MapaNavegacion
+                    solicitud={activa?._raw ?? null}
+                    wsRef={wsRef}
+                    rutaData={activa ? (rutaData[activa.id] ?? null) : null}
+                  />
+                )}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
                     <Avatar name={activaDisplay.ciudadano} size={40} bg="var(--green-soft)" />
