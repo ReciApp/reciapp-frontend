@@ -10,6 +10,7 @@ const LINKS = {
   ],
   reciclador: [
     { path: "/reciclador", label: "Solicitudes" },
+    { path: "/reciclador/backlog", label: "Backlog" },
     { path: "/perfil", label: "Perfil" },
   ],
   admin: [{ path: "/admin", label: "Panel" }],

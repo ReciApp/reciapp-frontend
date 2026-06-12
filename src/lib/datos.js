@@ -12,6 +12,7 @@ export const MAT = Object.fromEntries(MATERIALES.map((m) => [m.id, m]));
 export const ESTADOS = {
   pendiente:              { label: "Pendiente",     color: "var(--yellow)",     fg: "var(--ink)", icon: "clock" },
   asignada:               { label: "Asignada",      color: "var(--blue)",       fg: "#fff",       icon: "user" },
+  confirmada:             { label: "Confirmada",    color: "var(--green-deep)", fg: "#fff",       icon: "calendar" },
   en_camino:              { label: "En camino",     color: "var(--green-soft)", fg: "#fff",       icon: "truck" },
   pendiente_confirmacion: { label: "Por confirmar", color: "var(--orange)",     fg: "#fff",       icon: "alert" },
   completada:             { label: "Completada",    color: "var(--green)",      fg: "#fff",       icon: "check" },
