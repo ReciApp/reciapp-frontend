@@ -22,6 +22,7 @@ import AdminHome      from "./pages/AdminHome";
 import AdminRewards   from "./pages/AdminRewards";
 import NotFound       from "./pages/NotFound";
 import MapaTracking   from "./components/MapaTracking/MapaTracking";
+import ChatFlotante   from "./components/Chatbot/ChatFlotante";
 
 const HAS_SEEN_KEY = "reciapp_splash_seen";
 const shouldShowSplash = () => !sessionStorage.getItem(HAS_SEEN_KEY);
@@ -32,6 +33,13 @@ function RootRedirect() {
   if (!user) return <Navigate to="/login" replace />;
   const map = { ciudadano:"/ciudadano", reciclador:"/reciclador", admin:"/admin" };
   return <Navigate to={map[user.rol] || "/perfil"} replace />;
+}
+
+/* Chat flotante solo para usuarios autenticados (el endpoint requiere sesión). */
+function AuthedChat() {
+  const { user, loading } = useAuth();
+  if (loading || !user) return null;
+  return <ChatFlotante />;
 }
 
 export default function App() {
@@ -68,6 +76,7 @@ export default function App() {
       <Route path="/sin-acceso" element={<NotFound />} />
       <Route path="*"           element={<NotFound />} />
     </Routes>
+    <AuthedChat />
     </>
   );
 }
