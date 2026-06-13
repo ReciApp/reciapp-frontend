@@ -19,6 +19,7 @@ const LINKS = {
   ],
   admin: [
     { path: "/admin", label: "Panel" },
+    { path: "/admin/dashboard", label: "Dashboard" },
     { path: "/admin/rewards", label: "Recompensas" },
     { path: "/historial", label: "Historial" },
   ],
