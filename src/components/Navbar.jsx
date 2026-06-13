@@ -6,6 +6,7 @@ const LINKS = {
   ciudadano: [
     { path: "/ciudadano", label: "Inicio" },
     { path: "/ciudadano/solicitudes", label: "Mis solicitudes" },
+    { path: "/ciudadano/eco-creditos", label: "Eco-créditos" },
     { path: "/perfil", label: "Perfil" },
   ],
   reciclador: [

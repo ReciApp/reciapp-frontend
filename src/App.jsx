@@ -11,6 +11,7 @@ import AuthPage       from "./pages/AuthPage";
 import Profile        from "./pages/Profile";
 import CitizenHome    from "./pages/CitizenHome";
 import MisSolicitudes from "./pages/MisSolicitudes";
+import MisEcoCreditos from "./pages/MisEcoCreditos";
 import RecyclerHome   from "./pages/RecyclerHome";
 import BacklogReciclador from "./pages/BacklogReciclador";
 import MiDiaManana    from "./pages/MiDiaManana";
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/ciudadano"           element={<ProtectedRoute roles={["ciudadano"]}><CitizenHome /></ProtectedRoute>} />
       <Route path="/ciudadano/solicitudes" element={<ProtectedRoute roles={["ciudadano"]}><MisSolicitudes /></ProtectedRoute>} />
       <Route path="/ciudadano/solicitudes/:id/seguimiento" element={<ProtectedRoute roles={["ciudadano"]}><MapaTracking /></ProtectedRoute>} />
+      <Route path="/ciudadano/eco-creditos" element={<ProtectedRoute roles={["ciudadano"]}><MisEcoCreditos /></ProtectedRoute>} />
       <Route path="/reciclador"          element={<ProtectedRoute roles={["reciclador"]}><RecyclerHome /></ProtectedRoute>} />
       <Route path="/reciclador/backlog"  element={<ProtectedRoute roles={["reciclador"]}><BacklogReciclador /></ProtectedRoute>} />
       <Route path="/reciclador/manana"   element={<ProtectedRoute roles={["reciclador"]}><MiDiaManana /></ProtectedRoute>} />
