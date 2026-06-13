@@ -7,17 +7,20 @@ const LINKS = {
     { path: "/ciudadano", label: "Inicio" },
     { path: "/ciudadano/solicitudes", label: "Mis solicitudes" },
     { path: "/ciudadano/eco-creditos", label: "Eco-créditos" },
+    { path: "/historial", label: "Historial" },
     { path: "/perfil", label: "Perfil" },
   ],
   reciclador: [
     { path: "/reciclador", label: "Solicitudes" },
     { path: "/reciclador/backlog", label: "Backlog" },
     { path: "/reciclador/manana", label: "Mi día de mañana" },
+    { path: "/historial", label: "Historial" },
     { path: "/perfil", label: "Perfil" },
   ],
   admin: [
     { path: "/admin", label: "Panel" },
     { path: "/admin/rewards", label: "Recompensas" },
+    { path: "/historial", label: "Historial" },
   ],
 };
 
