@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import PanelConfirmacion from "../components/ConfirmacionRecoleccion/PanelConfirmacion";
+import ModalCalificacion from "../components/Calificacion/ModalCalificacion";
 import { Icon, PageHead, StatusBadge, Avatar, PrimaryButton, GhostButton } from "../components/ui/Primitivos";
 import { MAT } from "../lib/datos";
 import { listarSolicitudes, confirmarSolicitud } from "../api/solicitudes";
@@ -17,7 +18,7 @@ const FILTROS = [
 ];
 const ACTIVOS = ["pendiente", "asignada", "en_camino"];
 
-function SolicitudCard({ s, onConfirm, onTrack }) {
+function SolicitudCard({ s, onConfirm, onTrack, onCalificar }) {
   const [hover, setHover] = useState(false);
   return (
     <div onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)} style={{ background: "var(--cream-card)", border: "1.5px solid " + (hover ? "var(--green-soft)" : "var(--line)"), borderRadius: 20, padding: "18px 20px", boxShadow: hover ? "0 12px 26px -16px oklch(0.3 0.04 130 / 0.5)" : "0 2px 0 oklch(0.88 0.03 120)", transition: "border-color .15s, box-shadow .15s" }}>
@@ -43,7 +44,7 @@ function SolicitudCard({ s, onConfirm, onTrack }) {
         <StatusBadge estado={s.estado} />
       </div>
 
-      {(s.reciclador && s.reciclador !== "—") || s.estado === "pendiente_confirmacion" || s.estado === "en_camino" ? (
+      {(s.reciclador && s.reciclador !== "—") || s.estado === "pendiente_confirmacion" || s.estado === "en_camino" || s.estado === "completada" ? (
         <div style={{ display: "flex", flexWrap: "wrap", gap: 12, alignItems: "center", justifyContent: "space-between", marginTop: 14, paddingTop: 14, borderTop: "1px solid var(--line)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
             {s.reciclador && s.reciclador !== "—" && <>
@@ -54,6 +55,11 @@ function SolicitudCard({ s, onConfirm, onTrack }) {
           <div style={{ display: "flex", gap: 9 }}>
             {s.estado === "en_camino" && <GhostButton onClick={onTrack}><Icon name="gps" size={16} stroke="var(--green-deep)" />Seguir en vivo</GhostButton>}
             {s.estado === "pendiente_confirmacion" && <PrimaryButton type="button" size="sm" onClick={onConfirm}><Icon name="check" size={17} stroke="#fff" />Confirmar recepción</PrimaryButton>}
+            {s.estado === "completada" && (
+              s.calificada
+                ? <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontFamily: "var(--sans)", fontSize: 13.5, fontWeight: 700, color: "var(--green-deep)" }}><Icon name="star" size={16} stroke="var(--green-deep)" />Calificado</span>
+                : <PrimaryButton type="button" size="sm" onClick={onCalificar}><Icon name="star" size={16} stroke="#fff" />Calificar</PrimaryButton>
+            )}
           </div>
         </div>
       ) : null}
@@ -66,6 +72,7 @@ export default function MisSolicitudes() {
   const navigate = useNavigate();
   const [filtro, setFiltro] = useState("todas");
   const [conf, setConf] = useState(null);
+  const [calif, setCalif] = useState(null);
   const [lista, setLista] = useState([]);
   const [loading, setLoading] = useState(true);
   const notifRef = useRef([]);
@@ -115,6 +122,9 @@ export default function MisSolicitudes() {
     setConf(null);
   };
 
+  const marcarCalificada = (solicitudId) =>
+    setLista((l) => l.map((s) => (s._raw?.id === solicitudId || s.id === solicitudId) ? { ...s, calificada: true } : s));
+
   const filtered = lista.filter((s) =>
     filtro === "todas" ? true : filtro === "activas" ? ACTIVOS.includes(s.estado) : s.estado === filtro);
 
@@ -152,6 +162,7 @@ export default function MisSolicitudes() {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {filtered.map((s) => (
               <SolicitudCard key={s.id} s={s} onConfirm={() => setConf(s)}
+                onCalificar={() => setCalif(s)}
                 onTrack={() => navigate(`/ciudadano/solicitudes/${s._raw?.id || s.id}/seguimiento`)} />
             ))}
           </div>
@@ -159,6 +170,12 @@ export default function MisSolicitudes() {
       </main>
 
       <PanelConfirmacion open={!!conf} solicitud={conf?._raw || conf} onClose={() => setConf(null)} onConfirm={() => confirmar(conf)} />
+      <ModalCalificacion
+        open={!!calif}
+        solicitud={calif}
+        onClose={() => setCalif(null)}
+        onCalificada={(res) => marcarCalificada(res?.solicitud_id ?? (calif?._raw?.id || calif?.id))}
+      />
     </div>
   );
 }
