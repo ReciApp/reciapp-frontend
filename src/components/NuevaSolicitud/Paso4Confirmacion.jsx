@@ -71,10 +71,15 @@ export default function Paso4Confirmacion({ data, set }) {
 
   return (
     <div className="screen">
-      <h3 style={{ fontFamily: "var(--serif)", fontSize: 25, color: "var(--ink)", margin: "0 0 4px" }}>Confirma la recolección</h3>
-      <p style={{ fontFamily: "var(--sans)", fontSize: 14.5, color: "var(--ink-soft)", margin: "0 0 14px" }}>
-        Busca tu dirección o toca el mapa para marcar el punto.
-      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+        <img src="/ubicacion.png" alt="" style={{ width: 76, height: 76, objectFit: "contain", flexShrink: 0 }} />
+        <div>
+          <h3 style={{ fontFamily: "var(--serif)", fontSize: 25, color: "var(--ink)", margin: "0 0 4px" }}>Confirma la recolección</h3>
+          <p style={{ fontFamily: "var(--sans)", fontSize: 14.5, color: "var(--ink-soft)", margin: 0 }}>
+            Busca tu dirección o toca el mapa para marcar el punto.
+          </p>
+        </div>
+      </div>
 
       {/* Campo de dirección */}
       <div style={{ marginBottom: 12 }}>

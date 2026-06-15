@@ -73,11 +73,11 @@ export default function Register({ tipo = "ciudadano" }) {
           <form onSubmit={submit} noValidate style={{ display: "flex", flexDirection: "column", gap: 13 }}>
             <Field label="Nombre completo" name="name" autoComplete="name" value={f.nombre} onChange={(v) => set("nombre", v)} placeholder="Ej: María Quispe" error={errors.nombre} />
             <Field label="Correo electrónico" name="email" type="email" autoComplete="email" value={f.email} onChange={(v) => set("email", v)} placeholder="tucorreo@ejemplo.com" error={errors.email} />
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="two-col-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Field label="DNI (8 dígitos)" name="dni" inputMode="numeric" maxLength={8} value={f.dni} onChange={(v) => set("dni", onlyDigits(v))} placeholder="12345678" error={errors.dni} />
               <Field label="Celular" name="tel" type="tel" inputMode="numeric" maxLength={9} value={f.celular} onChange={(v) => set("celular", onlyDigits(v))} placeholder="987654321" error={errors.celular} />
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+            <div className="two-col-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
               <Field label="Contraseña (mín. 8)" name="pass" type={show ? "text" : "password"} value={f.pass} onChange={(v) => set("pass", v)} placeholder="••••••••" error={errors.pass} trailing={<EyeToggle show={show} onClick={() => setShow(!show)} />} />
               <Field label="Confirmar" name="confirm" type={showC ? "text" : "password"} value={f.confirm} onChange={(v) => set("confirm", v)} placeholder="••••••••" error={errors.confirm} trailing={<EyeToggle show={showC} onClick={() => setShowC(!showC)} />} />
             </div>

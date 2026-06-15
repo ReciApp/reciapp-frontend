@@ -4,7 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import Navbar from "../components/Navbar";
 import PanelConfirmacion from "../components/ConfirmacionRecoleccion/PanelConfirmacion";
 import ModalCalificacion from "../components/Calificacion/ModalCalificacion";
-import { Icon, PageHead, StatusBadge, Avatar, PrimaryButton, GhostButton } from "../components/ui/Primitivos";
+import { Icon, MatIcon, PageHead, StatusBadge, Avatar, PrimaryButton, GhostButton } from "../components/ui/Primitivos";
 import { MAT } from "../lib/datos";
 import { listarSolicitudes, confirmarSolicitud } from "../api/solicitudes";
 import { useWebSocket } from "../hooks/useWebSocket";
@@ -26,7 +26,7 @@ function SolicitudCard({ s, onConfirm, onTrack, onCalificar }) {
         <div style={{ display: "flex", gap: 14, minWidth: 0, flex: "1 1 auto" }}>
           <div style={{ display: "flex", flexShrink: 0 }}>
             {s.tipos.slice(0, 3).map((t, i) => (
-              <span key={t} style={{ width: 44, height: 44, borderRadius: 13, background: MAT[t]?.color, display: "grid", placeItems: "center", marginLeft: i ? -12 : 0, border: "2.5px solid var(--cream-card)", color: "#fff" }}><Icon name={MAT[t]?.icon} size={20} stroke="#fff" /></span>
+              <span key={t} style={{ width: 56, height: 56, borderRadius: 15, background: MAT[t]?.img ? "color-mix(in oklch, " + MAT[t]?.color + " 16%, #fff)" : MAT[t]?.color, display: "grid", placeItems: "center", marginLeft: i ? -14 : 0, border: "2.5px solid var(--cream-card)", color: "#fff" }}><MatIcon mat={MAT[t]} size={MAT[t]?.img ? 42 : 20} /></span>
             ))}
           </div>
           <div style={{ minWidth: 0 }}>
@@ -155,7 +155,7 @@ export default function MisSolicitudes() {
           </div>
         ) : filtered.length === 0 ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--ink-soft)" }}>
-            <div style={{ width: 64, height: 64, borderRadius: "50%", background: "var(--cream-card)", border: "1.5px solid var(--line)", display: "grid", placeItems: "center", margin: "0 auto 14px" }}><Icon name="clipboard" size={28} stroke="var(--ink-soft)" /></div>
+            <img src="/MisSolicitudes.png" alt="" style={{ width: 150, height: 150, objectFit: "contain", display: "block", margin: "0 auto 14px", opacity: 0.9 }} />
             <p style={{ fontFamily: "var(--sans)", fontSize: 15.5 }}>No tienes solicitudes en esta categoría.</p>
           </div>
         ) : (

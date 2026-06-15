@@ -38,7 +38,7 @@ function FormReward({ inicial = FORM_VACIO, titulo, onGuardar, onCancelar, guard
       <h3 style={{ fontFamily: "var(--serif)", fontSize: 20, color: "var(--ink)", margin: "0 0 10px" }}>{titulo}</h3>
       <Field label="Nombre" value={form.nombre} onChange={set("nombre")} placeholder="Ej. Vale de despensa S/20" error={errores.nombre} />
       <Field label="Descripción (opcional)" value={form.descripcion} onChange={set("descripcion")} placeholder="Detalle visible en el catálogo" />
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+      <div className="two-col-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
         <Field label="Costo (eco-créditos)" type="number" inputMode="decimal" value={form.costo_creditos} onChange={set("costo_creditos")} placeholder="50" error={errores.costo_creditos} />
         <Field label="Stock" type="number" inputMode="numeric" value={form.stock} onChange={set("stock")} placeholder="10" error={errores.stock} />
       </div>

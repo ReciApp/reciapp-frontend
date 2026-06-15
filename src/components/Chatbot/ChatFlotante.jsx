@@ -74,9 +74,9 @@ export default function ChatFlotante() {
 
       {/* Panel */}
       {abierto && (
-        <div style={{
+        <div className="chat-panel" style={{
           position: "fixed", bottom: 92, right: 22, zIndex: 70,
-          width: "min(360px, calc(100vw - 32px))", height: "min(520px, calc(100vh - 130px))",
+          width: "min(360px, calc(100vw - 32px))", height: "min(520px, calc(100dvh - 130px))",
           display: "flex", flexDirection: "column",
           background: "var(--cream-card)", border: "1.5px solid var(--line)", borderRadius: 20,
           boxShadow: "0 24px 60px -24px oklch(0.2 0.04 130 / 0.55)", overflow: "hidden",

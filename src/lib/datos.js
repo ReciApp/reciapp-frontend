@@ -1,11 +1,11 @@
 export const MATERIALES = [
-  { id: "papel",        label: "Papel",        color: "var(--yellow)",     icon: "clipboard" },
-  { id: "carton",       label: "Cartón",       color: "var(--orange)",     icon: "home" },
-  { id: "plastico",     label: "Plástico",     color: "var(--pink)",       icon: "recycle" },
-  { id: "vidrio",       label: "Vidrio",       color: "var(--green)",      icon: "weight" },
-  { id: "metal",        label: "Metal",        color: "var(--ink-soft)",   icon: "shield" },
-  { id: "organico",     label: "Orgánico",     color: "var(--green-deep)", icon: "leaf" },
-  { id: "electronicos", label: "Electrónicos", color: "var(--blue)",       icon: "settings" },
+  { id: "papel",        label: "Papel",        color: "var(--yellow)",     icon: "clipboard", img: "/papel.png" },
+  { id: "carton",       label: "Cartón",       color: "var(--orange)",     icon: "home",      img: "/Carton.png" },
+  { id: "plastico",     label: "Plástico",     color: "var(--pink)",       icon: "recycle",   img: "/Botella.png" },
+  { id: "vidrio",       label: "Vidrio",       color: "var(--green)",      icon: "weight",    img: "/vidrio.png" },
+  { id: "metal",        label: "Metal",        color: "var(--ink-soft)",   icon: "shield",    img: "/Metal.png" },
+  { id: "organico",     label: "Orgánico",     color: "var(--green-deep)", icon: "leaf",      img: "/organico.png" },
+  { id: "electronicos", label: "Electrónicos", color: "var(--blue)",       icon: "settings",  img: "/Electronico.png" },
 ];
 export const MAT = Object.fromEntries(MATERIALES.map((m) => [m.id, m]));
 
