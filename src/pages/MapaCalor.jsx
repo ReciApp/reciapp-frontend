@@ -102,7 +102,7 @@ export default function MapaCalor() {
           <span><strong style={{ color: "var(--ink)" }}>{Math.round(totalKg * 100) / 100}</strong> kg en el mapa</span>
         </div>
 
-        <div style={{ position: "relative", height: 520, borderRadius: 20, overflow: "hidden", border: "1.5px solid var(--line)" }}>
+        <div style={{ position: "relative", height: "clamp(340px, 60vh, 520px)", borderRadius: 20, overflow: "hidden", border: "1.5px solid var(--line)" }}>
           {cargando && (
             <div style={{ position: "absolute", inset: 0, zIndex: 500, display: "grid", placeItems: "center", background: "oklch(1 0 0 / 0.5)", fontFamily: "var(--sans)", color: "var(--ink-soft)" }}>
               Cargando mapa…
