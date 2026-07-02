@@ -16,12 +16,14 @@ function MiniStat({ value, unit, label, color }) {
   );
 }
 
-function DashCard({ badgeBg, icon, title, sub, accent, onClick }) {
+function DashCard({ badgeBg, icon, img, title, sub, accent, onClick }) {
   const [hover, setHover] = useState(false);
   return (
     <button type="button" onClick={onClick} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}
       style={{ position: "relative", textAlign: "left", cursor: "pointer", width: "100%", background: "var(--cream-card)", border: "1.5px solid " + (hover ? (accent || "var(--green)") : "var(--line)"), borderRadius: 20, padding: "20px 20px 22px", display: "flex", flexDirection: "column", gap: 14, minHeight: 150, boxShadow: hover ? "0 12px 26px -16px oklch(0.3 0.04 130 / 0.55)" : "0 2px 0 oklch(0.88 0.03 120)", transform: hover ? "translateY(-3px)" : "none", transition: "transform .15s, box-shadow .15s, border-color .15s" }}>
-      <span style={{ width: 46, height: 46, borderRadius: 13, background: badgeBg, display: "grid", placeItems: "center", flexShrink: 0 }}><Icon name={icon} size={22} stroke="#fff" /></span>
+      <span style={{ width: img ? 76 : 46, height: img ? 76 : 46, borderRadius: img ? 18 : 13, background: img ? "color-mix(in oklch, " + badgeBg + " 16%, #fff)" : badgeBg, display: "grid", placeItems: "center", flexShrink: 0 }}>
+        {img ? <img src={img} alt="" style={{ width: 58, height: 58, objectFit: "contain", display: "block" }} /> : <Icon name={icon} size={22} stroke="#fff" />}
+      </span>
       <div style={{ marginTop: "auto" }}>
         <span style={{ fontFamily: "var(--serif)", fontSize: 21, color: "var(--ink)", lineHeight: 1.1, whiteSpace: "nowrap" }}>{title}</span>
         <p style={{ fontFamily: "var(--sans)", fontSize: 13.5, color: "var(--ink-soft)", margin: "5px 0 0" }}>{sub}</p>
@@ -90,7 +92,7 @@ export default function CitizenHome() {
         </div>
 
         {/* mapa + nueva solicitud */}
-        <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)", gap: 18, marginTop: 22 }}>
+        <div className="home-split" style={{ display: "grid", gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)", gap: 18, marginTop: 22 }}>
           <div style={{ position: "relative", borderRadius: 24, overflow: "hidden", boxShadow: "0 6px 0 var(--green-deep)" }}>
             <MapaPlaceholder height={300} label="Recicladores cerca de ti" radius={0} />
             <button type="button" onClick={() => setModal(true)} style={{ position: "absolute", left: 18, bottom: 18, fontFamily: "var(--serif)", fontSize: 18, color: "#fff", background: "var(--green)", border: "none", borderRadius: 999, padding: "13px 24px", cursor: "pointer", boxShadow: "0 4px 0 var(--green-deep)", display: "inline-flex", alignItems: "center", gap: 10 }}
@@ -120,16 +122,16 @@ export default function CitizenHome() {
 
         {/* accesos */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginTop: 16 }}>
-          <DashCard accent="var(--orange)" badgeBg="var(--orange)" icon="clipboard" title="Mis solicitudes" sub="Rastrea tus recolecciones" onClick={() => navigate("/ciudadano/solicitudes")} />
-          <DashCard accent="var(--yellow)" badgeBg="var(--yellow)" icon="pin" title="Centros de acopio" sub="Encuentra puntos cercanos" />
-          <DashCard accent="var(--pink)" badgeBg="var(--pink)" icon="user" title="Mi perfil" sub="Datos y configuración" onClick={() => navigate("/perfil")} />
+          <DashCard accent="var(--orange)" badgeBg="var(--orange)" img="/MisSolicitudes.png" title="Mis solicitudes" sub="Rastrea tus recolecciones" onClick={() => navigate("/ciudadano/solicitudes")} />
+          <DashCard accent="var(--yellow)" badgeBg="var(--yellow)" img="/ubicacion.png" title="Centros de acopio" sub="Encuentra puntos cercanos" />
+          <DashCard accent="var(--pink)" badgeBg="var(--pink)" img="/Perfil.png" title="Mi perfil" sub="Datos y configuración" onClick={() => navigate("/perfil")} />
         </div>
 
         {/* materiales */}
         <div style={{ marginTop: 34 }}>
           <h3 style={{ fontFamily: "var(--serif)", fontSize: "clamp(22px, 2.6vw, 28px)", color: "var(--ink)", margin: "0 0 4px" }}>¿Qué puedes <span style={{ color: "var(--green)", fontStyle: "italic" }}>reciclar</span>?</h3>
           <p style={{ fontFamily: "var(--sans)", fontSize: 14.5, color: "var(--ink-soft)", margin: "0 0 16px" }}>Separa por tipo y suma eco-créditos por cada entrega.</p>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(116px, 1fr))", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))", gap: 12 }}>
             {MATERIALES.map((m) => <MaterialCard key={m.id} mat={m} onClick={() => setModal(true)} />)}
           </div>
         </div>

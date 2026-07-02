@@ -63,7 +63,7 @@ export default function Profile() {
 
         <form onSubmit={save} style={{ display: "flex", flexDirection: "column", gap: 15 }}>
           <Field label="Nombre completo" value={f.nombre} onChange={(v) => set("nombre", v)} />
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          <div className="two-col-sm" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
             <Field label="Correo electrónico" value={user?.correo || user?.email || ""} disabled hint="No editable" />
             <Field label="Celular" inputMode="numeric" maxLength={9} value={f.celular} onChange={(v) => set("celular", v.replace(/\D/g, ""))} />
           </div>

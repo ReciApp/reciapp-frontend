@@ -52,7 +52,7 @@ body { font-family: var(--sans); background: var(--cream); color: var(--ink); -w
 .no-bar::-webkit-scrollbar { width: 0; height: 0; }
 
 /* layout de autenticación (Login / Register) */
-.stage { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: clamp(0px, 3vw, 40px); }
+.stage { min-height: 100dvh; display: flex; align-items: center; justify-content: center; padding: clamp(0px, 3vw, 40px); }
 .card {
   position: relative; width: min(1180px, 100%); height: min(770px, 94vh);
   background: var(--cream-card); border-radius: 26px; overflow: hidden;
@@ -69,9 +69,64 @@ body { font-family: var(--sans); background: var(--cream); color: var(--ink); -w
 
 @media (max-width: 900px) {
   .stage { padding: 0; }
-  .card { height: auto; min-height: 100vh; width: 100%; border-radius: 0; display: flex; flex-direction: column; }
+  .card { height: auto; min-height: 100dvh; width: 100%; border-radius: 0; display: flex; flex-direction: column; }
   .panel { position: static; width: 100%; height: auto; transform: none !important; transition: none; }
   .panel-brand { min-height: 280px; }
-  .panel-form { min-height: 60vh; }
+  .panel-form { min-height: 60dvh; }
   .card[data-brand="right"] .panel-form { order: -1; }
+}
+
+/* Teléfono en horizontal: paneles de auth compactos para que no haya doble scroll */
+@media (max-width: 900px) and (orientation: landscape) {
+  .panel-brand { min-height: 220px; }
+  .panel-form { min-height: auto; }
+  .form-inner { justify-content: flex-start; }
+}
+
+/* ============================================================
+   Responsividad móvil — todo el frontend (vertical y horizontal)
+   Los estilos inline ganan al CSS, por eso se usa !important.
+   ============================================================ */
+
+/* Alto real del viewport (barra del navegador / rotación) */
+.paper-tex { min-height: 100dvh !important; }
+
+/* Grids principales de dos columnas → una sola columna en pantallas angostas */
+@media (max-width: 820px) {
+  .admin-grid,
+  .rec-grid,
+  .track-grid,
+  .home-split {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Pares de campos / tarjetas (1fr 1fr) → apilados en móvil */
+@media (max-width: 560px) {
+  .two-col-sm { grid-template-columns: 1fr !important; }
+}
+
+/* ---------- Navbar ---------- */
+@media (max-width: 880px) {
+  .reci-header-left { min-width: 0; flex: 1 1 auto; }
+  .reci-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .reci-nav::-webkit-scrollbar { display: none; }
+  .reci-nav button { white-space: nowrap; flex-shrink: 0; }
+}
+@media (max-width: 600px) {
+  .reci-user-text { display: none !important; }
+  .reci-logout-text { display: none; }
+}
+
+/* ---------- Modal / hoja inferior ---------- */
+.sheet-anim { max-height: 92dvh !important; }
+
+/* ---------- Chat flotante: no tapar toda la pantalla en horizontal ---------- */
+@media (max-height: 520px) {
+  .chat-panel { height: min(420px, calc(100dvh - 90px)) !important; }
 }

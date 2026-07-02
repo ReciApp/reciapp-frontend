@@ -52,6 +52,14 @@ export function Icon({ name, size = 20, stroke = "currentColor", sw = 2, style }
   );
 }
 
+/* ---------- Icono de material: usa la ilustración (img) si existe, si no el SVG ---------- */
+export function MatIcon({ mat, size = 24, stroke = "#fff" }) {
+  if (mat?.img) {
+    return <img src={mat.img} alt={mat.label || ""} style={{ width: size, height: size, objectFit: "contain", display: "block" }} />;
+  }
+  return <Icon name={mat?.icon} size={size} stroke={stroke} />;
+}
+
 /* ---------- Estrella de muchas puntas ---------- */
 export function Starburst({ points = 18, color, size = 100, inner = 0.56, style }) {
   const cx = 50, cy = 50, outer = 50, ir = outer * inner, total = points * 2;
@@ -187,9 +195,9 @@ export function MaterialCard({ mat, selected, onClick, compact }) {
         transform: hover && !active ? "translateY(-3px)" : "none", transition: "transform .15s, box-shadow .15s, border-color .15s, background .15s",
       }}>
       {active && <span style={{ position: "absolute", top: 8, right: 8, width: 20, height: 20, borderRadius: "50%", background: mat.color, display: "grid", placeItems: "center" }}><Icon name="check" size={13} stroke="#fff" sw={3} /></span>}
-      <span style={{ position: "relative", width: 52, height: 52, borderRadius: 15, display: "grid", placeItems: "center", background: mat.color, flexShrink: 0 }}>
-        <span style={{ position: "absolute", inset: 0, borderRadius: 15, background: "oklch(1 0 0 / 0.18)", clipPath: "polygon(0 0, 100% 0, 100% 42%, 0 62%)" }} />
-        <span style={{ position: "relative", color: "#fff" }}><Icon name={mat.icon} size={24} stroke="#fff" /></span>
+      <span style={{ position: "relative", width: mat.img ? 100 : 52, height: mat.img ? 100 : 52, borderRadius: mat.img ? 22 : 15, display: "grid", placeItems: "center", background: mat.img ? "color-mix(in oklch, " + mat.color + " 16%, #fff)" : mat.color, flexShrink: 0 }}>
+        <span style={{ position: "absolute", inset: 0, borderRadius: mat.img ? 22 : 15, background: "oklch(1 0 0 / 0.18)", clipPath: "polygon(0 0, 100% 0, 100% 42%, 0 62%)" }} />
+        <span style={{ position: "relative", color: "#fff" }}><MatIcon mat={mat} size={mat.img ? 80 : 24} /></span>
       </span>
       <span style={{ fontFamily: "var(--sans)", fontWeight: 700, fontSize: 14, color: "var(--ink)" }}>{mat.label}</span>
     </button>
