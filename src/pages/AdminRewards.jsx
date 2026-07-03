@@ -11,7 +11,8 @@ function FormReward({ inicial = FORM_VACIO, titulo, onGuardar, onCancelar, guard
   const [form, setForm] = useState(inicial);
   const [errores, setErrores] = useState({});
 
-  const set = (campo) => (e) => setForm((f) => ({ ...f, [campo]: e.target.value }));
+  // Field entrega el valor ya extraído (string), no el evento
+  const set = (campo) => (v) => setForm((f) => ({ ...f, [campo]: v }));
 
   const validar = () => {
     const err = {};
